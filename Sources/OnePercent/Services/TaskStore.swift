@@ -176,11 +176,21 @@ final class TaskStore: ObservableObject {
         selectedDate = dateService.nextDay(after: dateService.today)
     }
 
+    var canGoToPreviousDay: Bool {
+        dateService.canNavigatePrevious(from: selectedDate)
+    }
+
+    var canGoToNextDay: Bool {
+        dateService.canNavigateNext(from: selectedDate)
+    }
+
     func selectPreviousDay() {
+        guard canGoToPreviousDay else { return }
         selectedDate = dateService.previousDay(before: selectedDate)
     }
 
     func selectNextDay() {
+        guard canGoToNextDay else { return }
         selectedDate = dateService.nextDay(after: selectedDate)
     }
 }

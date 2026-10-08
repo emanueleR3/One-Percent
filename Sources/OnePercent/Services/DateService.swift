@@ -67,6 +67,20 @@ final class DateService: ObservableObject {
         calendar.isDateInTomorrow(date)
     }
 
+    func daysFromToday(to date: Date) -> Int {
+        let startToday = normalize(today)
+        let target = normalize(date)
+        return calendar.dateComponents([.day], from: startToday, to: target).day ?? 0
+    }
+
+    func canNavigatePrevious(from date: Date) -> Bool {
+        daysFromToday(to: date) > -7
+    }
+
+    func canNavigateNext(from date: Date) -> Bool {
+        daysFromToday(to: date) < 7
+    }
+
     func formatDayTitle(for date: Date) -> String {
         let normalized = normalize(date)
         if isToday(normalized) {

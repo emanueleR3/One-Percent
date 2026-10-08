@@ -4,7 +4,6 @@ import SwiftUI
 struct IslandHeaderView: View {
     @ObservedObject var store: TaskStore
     @Binding var isAddingTask: Bool
-    var onPopoverChange: ((Bool) -> Void)? = nil
 
     var body: some View {
         HStack(spacing: IslandMetrics.compact) {
@@ -22,8 +21,8 @@ struct IslandHeaderView: View {
 
             Spacer(minLength: 4)
 
-            // Day navigation controls
-            DayPickerView(store: store, onPopoverChange: onPopoverChange)
+            // Day navigation controls (arrow-only, [-7, +7] range)
+            DayPickerView(store: store)
 
             Spacer(minLength: 4)
 

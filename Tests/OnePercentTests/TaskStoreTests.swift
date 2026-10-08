@@ -204,6 +204,34 @@ final class TaskStoreTests: XCTestCase {
         store.clearErrorMessage()
         XCTAssertNil(store.lastErrorMessage)
     }
+
+    func testSevenDayNavigationClamping() {
+        XCTAssertTrue(store.dateService.isToday(store.selectedDate))
+
+        // Navigate 7 days forward
+        for _ in 1...7 {
+            XCTAssertTrue(store.canGoToNextDay)
+            store.selectNextDay()
+        }
+        XCTAssertFalse(store.canGoToNextDay)
+        let maxFutureDate = store.selectedDate
+
+        // Attempting to go further forward does nothing
+        store.selectNextDay()
+        XCTAssertEqual(store.selectedDate, maxFutureDate)
+
+        // Navigate 14 days back (7 to reach today, 7 to reach past)
+        for _ in 1...14 {
+            XCTAssertTrue(store.canGoToPreviousDay)
+            store.selectPreviousDay()
+        }
+        XCTAssertFalse(store.canGoToPreviousDay)
+        let maxPastDate = store.selectedDate
+
+        // Attempting to go further back does nothing
+        store.selectPreviousDay()
+        XCTAssertEqual(store.selectedDate, maxPastDate)
+    }
 }
 
 final class MockTaskPersistence: TaskPersisting, @unchecked Sendable {

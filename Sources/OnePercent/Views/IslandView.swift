@@ -17,17 +17,47 @@ struct IslandView: View {
     var onInteractionChange: ((Bool) -> Void)? = nil
 
     @State private var isAddingTask = false
-    @State private var isCalendarOpen = false
 
     var body: some View {
+        ZStack(alignment: .top) {
+            islandCard
+                .frame(width: IslandMetrics.panelWidth, height: desiredPanelHeight)
+                // Fluid droplet bounce anchored at the camera notch.
+                // It expands with overshoot into the window's headroom without edge clipping.
+                .scaleEffect(
+                    x: presentationState.isExpanded ? 1.0 : 0.70,
+                    y: presentationState.isExpanded ? 1.0 : 0.16,
+                    anchor: .top
+                )
+                .opacity(presentationState.isExpanded ? 1.0 : 0.0)
+                .animation(
+                    presentationState.isExpanded
+                        ? IslandAnimations.dropletExpandSpring
+                        : IslandAnimations.dropletCollapseSpring,
+                    value: presentationState.isExpanded
+                )
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(.horizontal, NotchPositionResolver.defaultHeadroom)
+        .padding(.bottom, NotchPositionResolver.defaultHeadroom)
+        .accessibilityElement(children: .contain)
+        .onChange(of: isAddingTask) { _, adding in
+            onInteractionChange?(adding)
+        }
+        .onChange(of: desiredPanelHeight) { _, newHeight in
+            onHeightChange?(newHeight)
+        }
+        .onAppear {
+            onHeightChange?(desiredPanelHeight)
+        }
+    }
+
+    private var islandCard: some View {
         VStack(alignment: .leading, spacing: IslandMetrics.standard) {
-            // Persistent Header
+            // Header with wordmark, arrow navigation, and add goal button
             IslandHeaderView(
                 store: store,
-                isAddingTask: $isAddingTask,
-                onPopoverChange: { open in
-                    isCalendarOpen = open
-                }
+                isAddingTask: $isAddingTask
             )
 
             // Daily Progress
@@ -137,32 +167,6 @@ struct IslandView: View {
         .overlay {
             RoundedRectangle(cornerRadius: IslandMetrics.cornerRadius, style: .continuous)
                 .stroke(IslandPalette.border.opacity(0.6), lineWidth: 1)
-        }
-        // Droplet / bubble spring scale & fade anchored to the camera notch
-        .scaleEffect(
-            x: presentationState.isExpanded ? 1.0 : 0.70,
-            y: presentationState.isExpanded ? 1.0 : 0.16,
-            anchor: .top
-        )
-        .opacity(presentationState.isExpanded ? 1.0 : 0.0)
-        .animation(
-            presentationState.isExpanded
-                ? IslandAnimations.dropletExpandSpring
-                : IslandAnimations.dropletCollapseSpring,
-            value: presentationState.isExpanded
-        )
-        .accessibilityElement(children: .contain)
-        .onChange(of: isAddingTask) { _, adding in
-            onInteractionChange?(adding || isCalendarOpen)
-        }
-        .onChange(of: isCalendarOpen) { _, open in
-            onInteractionChange?(isAddingTask || open)
-        }
-        .onChange(of: desiredPanelHeight) { _, newHeight in
-            onHeightChange?(newHeight)
-        }
-        .onAppear {
-            onHeightChange?(desiredPanelHeight)
         }
     }
 

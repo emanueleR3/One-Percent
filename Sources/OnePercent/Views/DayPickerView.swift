@@ -1,14 +1,12 @@
 import SwiftUI
 
-/// Compact day navigation and picker per ONE_PERCENT_SPEC.md (Section 6.2, 12)
+/// Compact day navigation per user requirements: arrows only, clamped to [-7, +7] days from today
 struct DayPickerView: View {
     @ObservedObject var store: TaskStore
-    var onPopoverChange: ((Bool) -> Void)? = nil
-    @State private var isShowingCalendarPopover = false
 
     var body: some View {
-        HStack(spacing: 4) {
-            // Previous Day Button
+        HStack(spacing: 5) {
+            // Previous Day Button (disabled at -7 days from today)
             Button {
                 withAnimation(IslandAnimations.statusTransition) {
                     store.selectPreviousDay()
@@ -16,27 +14,19 @@ struct DayPickerView: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(IslandPalette.secondaryText)
+                    .foregroundStyle(store.canGoToPreviousDay ? IslandPalette.secondaryText : IslandPalette.tertiaryText.opacity(0.35))
                     .frame(width: 18, height: 22)
             }
             .buttonStyle(.plain)
-            .help("Previous day")
+            .disabled(!store.canGoToPreviousDay)
+            .help(store.canGoToPreviousDay ? "Previous day" : "Minimum range reached (-7 days)")
             .accessibilityLabel("Go to previous day")
 
-            // Day Title Button with Popover
-            Button {
-                isShowingCalendarPopover.toggle()
-            } label: {
-                HStack(spacing: 4) {
-                    Text(store.dateService.formatDayTitle(for: store.selectedDate))
-                        .font(IslandTypography.statusLabel)
-                        .foregroundStyle(store.dateService.isToday(store.selectedDate) ? IslandPalette.primaryText : IslandPalette.inProgressAccent)
-
-                    Image(systemName: "calendar")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(IslandPalette.secondaryText)
-                }
-                .padding(.horizontal, 7)
+            // Day Title (clean, no calendar popover)
+            Text(store.dateService.formatDayTitle(for: store.selectedDate))
+                .font(IslandTypography.statusLabel)
+                .foregroundStyle(store.dateService.isToday(store.selectedDate) ? IslandPalette.primaryText : IslandPalette.inProgressAccent)
+                .padding(.horizontal, 8)
                 .padding(.vertical, 3)
                 .background(
                     RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
@@ -46,54 +36,9 @@ struct DayPickerView: View {
                     RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
                         .stroke(IslandPalette.border.opacity(0.6), lineWidth: 0.5)
                 )
-            }
-            .buttonStyle(.plain)
-            .help("Choose date")
-            .accessibilityLabel("Selected date: \(store.dateService.formatDayTitle(for: store.selectedDate))")
-            .popover(isPresented: $isShowingCalendarPopover, arrowEdge: .bottom) {
-                VStack(spacing: 10) {
-                    HStack(spacing: 8) {
-                        Button("Today") {
-                            store.selectToday()
-                            isShowingCalendarPopover = false
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(IslandPalette.elevatedSurface)
-                        .font(IslandTypography.caption)
-                        .controlSize(.small)
+                .accessibilityLabel("Selected date: \(store.dateService.formatDayTitle(for: store.selectedDate))")
 
-                        Button("Tomorrow") {
-                            store.selectTomorrow()
-                            isShowingCalendarPopover = false
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(IslandPalette.elevatedSurface)
-                        .font(IslandTypography.caption)
-                        .controlSize(.small)
-                    }
-                    .padding(.top, 10)
-
-                    DatePicker(
-                        "Date",
-                        selection: Binding(
-                            get: { store.selectedDate },
-                            set: { newDate in
-                                store.selectDate(newDate)
-                                isShowingCalendarPopover = false
-                            }
-                        ),
-                        displayedComponents: [.date]
-                    )
-                    .datePickerStyle(.graphical)
-                    .labelsHidden()
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
-                }
-                .frame(width: 260)
-                .background(IslandPalette.background)
-            }
-
-            // Next Day Button
+            // Next Day Button (disabled at +7 days from today)
             Button {
                 withAnimation(IslandAnimations.statusTransition) {
                     store.selectNextDay()
@@ -101,11 +46,12 @@ struct DayPickerView: View {
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(IslandPalette.secondaryText)
+                    .foregroundStyle(store.canGoToNextDay ? IslandPalette.secondaryText : IslandPalette.tertiaryText.opacity(0.35))
                     .frame(width: 18, height: 22)
             }
             .buttonStyle(.plain)
-            .help("Next day")
+            .disabled(!store.canGoToNextDay)
+            .help(store.canGoToNextDay ? "Next day" : "Maximum range reached (+7 days)")
             .accessibilityLabel("Go to next day")
 
             // Quick "Today" Jump Button when viewing another day
@@ -129,9 +75,6 @@ struct DayPickerView: View {
                 .help("Jump back to today")
                 .accessibilityLabel("Return to today")
             }
-        }
-        .onChange(of: isShowingCalendarPopover) { _, open in
-            onPopoverChange?(open)
         }
     }
 }

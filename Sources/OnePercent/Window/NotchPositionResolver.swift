@@ -20,9 +20,14 @@ struct NotchGeometry: Equatable {
 struct NotchPositionResolver {
     static let preferredPanelSize = NSSize(width: 400, height: 174)
     static let activationHorizontalPadding: CGFloat = 16
+    static let defaultHeadroom: CGFloat = 24
 
     @MainActor
-    func resolve(panelHeight: CGFloat = preferredPanelSize.height, panelWidth: CGFloat = preferredPanelSize.width) -> NotchGeometry? {
+    func resolve(
+        panelHeight: CGFloat = preferredPanelSize.height,
+        panelWidth: CGFloat = preferredPanelSize.width,
+        overshootHeadroom: CGFloat = defaultHeadroom
+    ) -> NotchGeometry? {
         guard let screen = targetScreen(from: NSScreen.screens) else {
             return nil
         }
@@ -34,10 +39,18 @@ struct NotchPositionResolver {
             auxiliaryTopLeftArea: screen.auxiliaryTopLeftArea ?? .zero,
             auxiliaryTopRightArea: screen.auxiliaryTopRightArea ?? .zero
         )
-        return Self.geometry(for: metrics, preferredSize: NSSize(width: panelWidth, height: panelHeight))
+        return Self.geometry(
+            for: metrics,
+            preferredSize: NSSize(width: panelWidth, height: panelHeight),
+            overshootHeadroom: overshootHeadroom
+        )
     }
 
-    static func geometry(for metrics: NotchScreenMetrics, preferredSize: NSSize = preferredPanelSize) -> NotchGeometry {
+    static func geometry(
+        for metrics: NotchScreenMetrics,
+        preferredSize: NSSize = preferredPanelSize,
+        overshootHeadroom: CGFloat = 0
+    ) -> NotchGeometry {
         let frame = metrics.frame
         let leftArea = metrics.auxiliaryTopLeftArea
         let rightArea = metrics.auxiliaryTopRightArea
@@ -66,17 +79,22 @@ struct NotchPositionResolver {
         let topAnchor = min(frame.maxY - metrics.safeAreaInsets.top, metrics.visibleFrame.maxY)
         let horizontalInset = min(12, frame.width / 2)
         let maximumWidth = max(1, frame.width - horizontalInset * 2)
-        let panelWidth = min(preferredSize.width, maximumWidth)
+
+        let cardWidth = min(preferredSize.width, maximumWidth)
+        let totalWindowWidth = min(cardWidth + overshootHeadroom * 2, frame.width)
+
         let maximumHeight = max(1, topAnchor - frame.minY - 12)
-        let panelHeight = min(preferredSize.height, maximumHeight)
-        let minimumPanelX = frame.minX + horizontalInset
-        let maximumPanelX = max(minimumPanelX, frame.maxX - panelWidth - horizontalInset)
-        let panelX = min(max(notchBounds.midX - panelWidth / 2, minimumPanelX), maximumPanelX)
+        let cardHeight = min(preferredSize.height, maximumHeight)
+        let totalWindowHeight = min(cardHeight + overshootHeadroom, topAnchor - frame.minY)
+
+        let minimumPanelX = frame.minX
+        let maximumPanelX = max(minimumPanelX, frame.maxX - totalWindowWidth)
+        let panelX = min(max(notchBounds.midX - totalWindowWidth / 2, minimumPanelX), maximumPanelX)
         let expandedFrame = NSRect(
             x: panelX,
-            y: topAnchor - panelHeight,
-            width: panelWidth,
-            height: panelHeight
+            y: topAnchor - totalWindowHeight,
+            width: totalWindowWidth,
+            height: totalWindowHeight
         )
 
         let activationHeight = max(24, notchBounds.height, frame.maxY - metrics.visibleFrame.maxY)

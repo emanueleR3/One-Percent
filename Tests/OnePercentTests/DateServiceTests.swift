@@ -126,4 +126,31 @@ final class DateServiceTests: XCTestCase {
         XCTAssertEqual(springNextComps.month, 3)
         XCTAssertEqual(springNextComps.hour, 0)
     }
+
+    func testSevenDayBoundaryLimits() {
+        let today = dateService.today
+        XCTAssertEqual(dateService.daysFromToday(to: today), 0)
+        XCTAssertTrue(dateService.canNavigatePrevious(from: today))
+        XCTAssertTrue(dateService.canNavigateNext(from: today))
+
+        // 7 days past: cannot go further past
+        let past7 = calendar.date(byAdding: .day, value: -7, to: today)!
+        XCTAssertEqual(dateService.daysFromToday(to: past7), -7)
+        XCTAssertFalse(dateService.canNavigatePrevious(from: past7))
+        XCTAssertTrue(dateService.canNavigateNext(from: past7))
+
+        // 6 days past: can go previous
+        let past6 = calendar.date(byAdding: .day, value: -6, to: today)!
+        XCTAssertTrue(dateService.canNavigatePrevious(from: past6))
+
+        // 7 days future: cannot go further future
+        let future7 = calendar.date(byAdding: .day, value: 7, to: today)!
+        XCTAssertEqual(dateService.daysFromToday(to: future7), 7)
+        XCTAssertFalse(dateService.canNavigateNext(from: future7))
+        XCTAssertTrue(dateService.canNavigatePrevious(from: future7))
+
+        // 6 days future: can go next
+        let future6 = calendar.date(byAdding: .day, value: 6, to: today)!
+        XCTAssertTrue(dateService.canNavigateNext(from: future6))
+    }
 }

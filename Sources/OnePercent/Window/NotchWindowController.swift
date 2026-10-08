@@ -122,7 +122,9 @@ final class NotchWindowController {
             return
         }
 
-        let initialSize = NSSize(width: IslandMetrics.panelWidth, height: currentPanelHeight)
+        let initialWidth = IslandMetrics.panelWidth + NotchPositionResolver.defaultHeadroom * 2
+        let initialHeight = currentPanelHeight + NotchPositionResolver.defaultHeadroom
+        let initialSize = NSSize(width: initialWidth, height: initialHeight)
         let panel = NotchPanel(
             contentRect: NSRect(origin: .zero, size: initialSize),
             styleMask: [.borderless, .nonactivatingPanel],
