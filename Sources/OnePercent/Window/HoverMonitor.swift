@@ -17,7 +17,7 @@ final class HoverMonitor {
     private var closeWorkItem: DispatchWorkItem?
     private var state = HoverStateMachine()
 
-    init(closeDelay: TimeInterval = 0.32) {
+    init(closeDelay: TimeInterval = 0.16) {
         self.closeDelay = closeDelay
     }
 

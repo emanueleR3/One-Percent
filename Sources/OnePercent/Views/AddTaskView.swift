@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Compact inline goal editor per ONE_PERCENT_SPEC.md (Section 11.5)
 struct AddTaskView: View {
@@ -7,6 +8,7 @@ struct AddTaskView: View {
 
     @State private var title: String = ""
     @FocusState private var isFieldFocused: Bool
+    @State private var keyMonitor: Any?
 
     var body: some View {
         HStack(spacing: IslandMetrics.compact) {
@@ -27,21 +29,6 @@ struct AddTaskView: View {
                     onCancel()
                 }
                 .accessibilityLabel("New goal title")
-
-            // Paste Button from Clipboard
-            if trimmedTitle.isEmpty, let clip = clipboardContent, !clip.isEmpty {
-                Button {
-                    title = clip
-                } label: {
-                    Image(systemName: "doc.on.clipboard")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(IslandPalette.secondaryText)
-                        .frame(width: 22, height: 22)
-                }
-                .buttonStyle(.plain)
-                .help("Paste from clipboard (⌘V)")
-                .accessibilityLabel("Paste from clipboard")
-            }
 
             // Submit Button
             Button {
@@ -84,15 +71,36 @@ struct AddTaskView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 isFieldFocused = true
             }
+            installKeyMonitor()
+        }
+        .onDisappear {
+            removeKeyMonitor()
+        }
+    }
+
+    private func installKeyMonitor() {
+        guard keyMonitor == nil else { return }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Handle Command+V paste reliably
+            if event.modifierFlags.contains(.command), event.charactersIgnoringModifiers == "v" {
+                if let pasted = NSPasteboard.general.string(forType: .string), !pasted.isEmpty {
+                    self.title += pasted
+                    return nil
+                }
+            }
+            return event
+        }
+    }
+
+    private func removeKeyMonitor() {
+        if let monitor = keyMonitor {
+            NSEvent.removeMonitor(monitor)
+            keyMonitor = nil
         }
     }
 
     private var trimmedTitle: String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var clipboardContent: String? {
-        NSPasteboard.general.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func submit() {

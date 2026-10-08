@@ -13,13 +13,15 @@ final class NotchWindowController {
     private var visibilityGeneration = 0
     private var currentPanelHeight: CGFloat = IslandMetrics.minPanelHeight
 
+    private let presentationState = IslandPresentationState()
+
     var isHoverEnabled: Bool {
         get { hoverMonitor.isEnabled }
         set { hoverMonitor.isEnabled = newValue }
     }
 
     var isPanelVisible: Bool {
-        panel?.isVisible ?? false
+        panel?.isVisible == true && presentationState.isExpanded
     }
 
     init(taskStore: TaskStore) {
@@ -78,10 +80,13 @@ final class NotchWindowController {
         hoverMonitor.forceExpanded()
         visibilityGeneration += 1
         if !panel.isVisible {
-            panel.alphaValue = 0
+            panel.alphaValue = 1
             panel.orderFrontRegardless()
         }
-        animate(panel: panel, toAlpha: 1, duration: 0.2, completion: nil)
+
+        withAnimation(IslandAnimations.dropletExpandSpring) {
+            presentationState.isExpanded = true
+        }
     }
 
     func hidePanel() {
@@ -91,12 +96,16 @@ final class NotchWindowController {
 
         visibilityGeneration += 1
         let generation = visibilityGeneration
-        animate(panel: panel, toAlpha: 0, duration: 0.16) { [weak self, weak panel] in
+
+        withAnimation(IslandAnimations.dropletCollapseSpring) {
+            presentationState.isExpanded = false
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + IslandAnimations.hideDuration) { [weak self, weak panel] in
             guard let self, let panel, self.visibilityGeneration == generation else {
                 return
             }
             panel.orderOut(nil)
-            panel.alphaValue = 1
             self.hoverMonitor.forceClosed()
         }
     }
@@ -129,11 +138,12 @@ final class NotchWindowController {
         panel.isMovable = false
         panel.isMovableByWindowBackground = false
         panel.ignoresMouseEvents = false
-        panel.becomesKeyOnlyIfNeeded = true
+        panel.becomesKeyOnlyIfNeeded = false
         panel.acceptsMouseMovedEvents = true
         panel.contentView = NSHostingView(
             rootView: IslandView(
                 store: taskStore,
+                presentationState: presentationState,
                 onHeightChange: { [weak self] newHeight in
                     self?.updateContentHeight(newHeight)
                 },

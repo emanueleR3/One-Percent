@@ -1,8 +1,18 @@
 import SwiftUI
 
+@MainActor
+final class IslandPresentationState: ObservableObject {
+    @Published var isExpanded: Bool = false
+
+    init(isExpanded: Bool = false) {
+        self.isExpanded = isExpanded
+    }
+}
+
 /// Expanded Dynamic Island notch panel surface per ONE_PERCENT_SPEC.md (Section 11)
 struct IslandView: View {
     @ObservedObject var store: TaskStore
+    @ObservedObject var presentationState: IslandPresentationState
     var onHeightChange: ((CGFloat) -> Void)? = nil
     var onInteractionChange: ((Bool) -> Void)? = nil
 
@@ -128,6 +138,19 @@ struct IslandView: View {
             RoundedRectangle(cornerRadius: IslandMetrics.cornerRadius, style: .continuous)
                 .stroke(IslandPalette.border.opacity(0.6), lineWidth: 1)
         }
+        // Droplet / bubble spring scale & fade anchored to the camera notch
+        .scaleEffect(
+            x: presentationState.isExpanded ? 1.0 : 0.70,
+            y: presentationState.isExpanded ? 1.0 : 0.16,
+            anchor: .top
+        )
+        .opacity(presentationState.isExpanded ? 1.0 : 0.0)
+        .animation(
+            presentationState.isExpanded
+                ? IslandAnimations.dropletExpandSpring
+                : IslandAnimations.dropletCollapseSpring,
+            value: presentationState.isExpanded
+        )
         .accessibilityElement(children: .contain)
         .onChange(of: isAddingTask) { _, adding in
             onInteractionChange?(adding || isCalendarOpen)

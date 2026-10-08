@@ -10,8 +10,9 @@ final class OnePercentApplication: NSObject {
     static func main() {
         let application = NSApplication.shared
         application.delegate = appDelegate
-        application.setActivationPolicy(.regular)
+        application.setActivationPolicy(.accessory)
         configureApplicationMenu(for: application)
+        configureApplicationIcon(for: application)
         application.run()
     }
 
@@ -21,6 +22,15 @@ final class OnePercentApplication: NSObject {
         // 1. Application Menu ("One Percent")
         let applicationMenuItem = NSMenuItem()
         let applicationMenu = NSMenu(title: "One Percent")
+        let aboutItem = NSMenuItem(
+            title: "About One Percent",
+            action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+            keyEquivalent: ""
+        )
+        aboutItem.target = application
+        applicationMenu.addItem(aboutItem)
+        applicationMenu.addItem(NSMenuItem.separator())
+
         let quitItem = NSMenuItem(
             title: "Quit One Percent",
             action: #selector(NSApplication.terminate(_:)),
@@ -84,5 +94,39 @@ final class OnePercentApplication: NSObject {
         mainMenu.addItem(editMenuItem)
 
         application.mainMenu = mainMenu
+    }
+
+    private static func configureApplicationIcon(for application: NSApplication) {
+        if let icon = loadAppIcon() {
+            application.applicationIconImage = icon
+        }
+    }
+
+    private static func loadAppIcon() -> NSImage? {
+        if let icon = NSImage(named: "AppIcon") {
+            return icon
+        }
+        if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+           let icon = NSImage(contentsOf: url) {
+            return icon
+        }
+        if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "png"),
+           let icon = NSImage(contentsOf: url) {
+            return icon
+        }
+
+        let possiblePaths = [
+            Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/AppIcon.icns").path,
+            Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("Resources/AppIcon.icns").path,
+            "Resources/AppIcon.icns",
+            "Resources/AppIcon.png"
+        ]
+        for path in possiblePaths {
+            if FileManager.default.fileExists(atPath: path),
+               let icon = NSImage(contentsOfFile: path) {
+                return icon
+            }
+        }
+        return nil
     }
 }
