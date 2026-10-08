@@ -4,11 +4,27 @@ import SwiftUI
 
 @MainActor
 final class NotchWindowController {
+    let taskStore: TaskStore
     private let positionResolver = NotchPositionResolver()
     private let hoverMonitor = HoverMonitor()
     private var panel: NotchPanel?
+    private var activationWindow: NSWindow?
     private var notificationTokens: [NSObjectProtocol] = []
     private var visibilityGeneration = 0
+    private var currentPanelHeight: CGFloat = IslandMetrics.minPanelHeight
+
+    var isHoverEnabled: Bool {
+        get { hoverMonitor.isEnabled }
+        set { hoverMonitor.isEnabled = newValue }
+    }
+
+    var isPanelVisible: Bool {
+        panel?.isVisible ?? false
+    }
+
+    init(taskStore: TaskStore) {
+        self.taskStore = taskStore
+    }
 
     func start() {
         configurePanelIfNeeded()
@@ -27,7 +43,69 @@ final class NotchWindowController {
         hoverMonitor.stop()
         notificationTokens.forEach { NotificationCenter.default.removeObserver($0) }
         notificationTokens.removeAll()
+        activationWindow?.orderOut(nil)
+        activationWindow = nil
         panel?.orderOut(nil)
+    }
+
+    func setInteractionLocked(_ locked: Bool) {
+        hoverMonitor.setInteractionLocked(locked)
+        if locked {
+            activateForInput()
+        }
+    }
+
+    func activateForInput() {
+        NSApp.activate(ignoringOtherApps: true)
+        panel?.makeKey()
+    }
+
+    func togglePanel() {
+        if isPanelVisible {
+            hidePanel()
+        } else {
+            showPanel()
+        }
+    }
+
+    func showPanel() {
+        taskStore.dateService.refreshToday()
+        refreshGeometry()
+        guard let panel else {
+            return
+        }
+
+        hoverMonitor.forceExpanded()
+        visibilityGeneration += 1
+        if !panel.isVisible {
+            panel.alphaValue = 0
+            panel.orderFrontRegardless()
+        }
+        animate(panel: panel, toAlpha: 1, duration: 0.2, completion: nil)
+    }
+
+    func hidePanel() {
+        guard let panel, panel.isVisible else {
+            return
+        }
+
+        visibilityGeneration += 1
+        let generation = visibilityGeneration
+        animate(panel: panel, toAlpha: 0, duration: 0.16) { [weak self, weak panel] in
+            guard let self, let panel, self.visibilityGeneration == generation else {
+                return
+            }
+            panel.orderOut(nil)
+            panel.alphaValue = 1
+            self.hoverMonitor.forceClosed()
+        }
+    }
+
+    func updateContentHeight(_ newHeight: CGFloat) {
+        let clamped = min(IslandMetrics.maxPanelHeight, max(IslandMetrics.minPanelHeight, newHeight))
+        guard abs(currentPanelHeight - clamped) > 1 else { return }
+        currentPanelHeight = clamped
+        refreshGeometry(animated: panel?.isVisible == true)
     }
 
     private func configurePanelIfNeeded() {
@@ -35,8 +113,9 @@ final class NotchWindowController {
             return
         }
 
+        let initialSize = NSSize(width: IslandMetrics.panelWidth, height: currentPanelHeight)
         let panel = NotchPanel(
-            contentRect: NSRect(origin: .zero, size: NotchPositionResolver.preferredPanelSize),
+            contentRect: NSRect(origin: .zero, size: initialSize),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -52,7 +131,17 @@ final class NotchWindowController {
         panel.ignoresMouseEvents = false
         panel.becomesKeyOnlyIfNeeded = true
         panel.acceptsMouseMovedEvents = true
-        panel.contentView = NSHostingView(rootView: IslandView())
+        panel.contentView = NSHostingView(
+            rootView: IslandView(
+                store: taskStore,
+                onHeightChange: { [weak self] newHeight in
+                    self?.updateContentHeight(newHeight)
+                },
+                onInteractionChange: { [weak self] isInteracting in
+                    self?.setInteractionLocked(isInteracting)
+                }
+            )
+        )
         panel.orderOut(nil)
         self.panel = panel
     }
@@ -87,45 +176,59 @@ final class NotchWindowController {
         )
     }
 
-    private func refreshGeometry() {
-        guard let panel, let geometry = positionResolver.resolve() else {
+    private func refreshGeometry(animated: Bool = false) {
+        guard let panel, let geometry = positionResolver.resolve(
+            panelHeight: currentPanelHeight,
+            panelWidth: IslandMetrics.panelWidth
+        ) else {
             return
         }
 
-        panel.setFrame(geometry.expandedFrame, display: false)
+        if animated && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.2
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                panel.animator().setFrame(geometry.expandedFrame, display: true)
+            }
+        } else {
+            panel.setFrame(geometry.expandedFrame, display: true)
+        }
+
+        updateActivationWindow(for: geometry.activationRect)
+
         hoverMonitor.update(
             activationRect: geometry.activationRect,
             interactiveRect: geometry.expandedFrame.insetBy(dx: -2, dy: -2)
         )
     }
 
-    private func showPanel() {
-        refreshGeometry()
-        guard let panel else {
-            return
-        }
+    private func updateActivationWindow(for rect: NSRect) {
+        if let window = activationWindow {
+            window.setFrame(rect, display: true)
+        } else {
+            let window = NSWindow(
+                contentRect: rect,
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.hasShadow = false
+            window.level = .statusBar
+            window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+            window.ignoresMouseEvents = false
 
-        visibilityGeneration += 1
-        if !panel.isVisible {
-            panel.alphaValue = 0
-            panel.orderFrontRegardless()
-        }
-        animate(panel: panel, toAlpha: 1, duration: 0.2, completion: nil)
-    }
-
-    private func hidePanel() {
-        guard let panel, panel.isVisible else {
-            return
-        }
-
-        visibilityGeneration += 1
-        let generation = visibilityGeneration
-        animate(panel: panel, toAlpha: 0, duration: 0.16) { [weak self, weak panel] in
-            guard let self, let panel, self.visibilityGeneration == generation else {
-                return
+            let trackingView = ActivationTrackingView(frame: NSRect(origin: .zero, size: rect.size))
+            trackingView.onMouseEnter = { [weak self] in
+                self?.hoverMonitor.handleDirectActivationEntry()
             }
-            panel.orderOut(nil)
-            panel.alphaValue = 1
+            trackingView.onMouseExit = { [weak self] in
+                self?.hoverMonitor.evaluateCurrentMouseLocation()
+            }
+            window.contentView = trackingView
+            window.orderFrontRegardless()
+            self.activationWindow = window
         }
     }
 
@@ -149,4 +252,33 @@ final class NotchWindowController {
 private final class NotchPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+}
+
+private final class ActivationTrackingView: NSView {
+    var onMouseEnter: (() -> Void)?
+    var onMouseExit: (() -> Void)?
+    private var trackingArea: NSTrackingArea?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        self.trackingArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        onMouseEnter?()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        onMouseExit?()
+    }
 }

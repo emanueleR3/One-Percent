@@ -28,4 +28,16 @@ final class HoverStateMachineTests: XCTestCase {
         XCTAssertEqual(state.closeDelayElapsed(), [.hide])
         XCTAssertFalse(state.isExpanded)
     }
+
+    @MainActor
+    func testHoverMonitorInteractionLockPreventsPrematureClose() {
+        let monitor = HoverMonitor(closeDelay: 0.05)
+        var hideCalled = false
+        monitor.onHide = { hideCalled = true }
+        monitor.forceExpanded()
+        monitor.setInteractionLocked(true)
+
+        monitor.evaluateCurrentMouseLocation()
+        XCTAssertFalse(hideCalled)
+    }
 }

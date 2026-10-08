@@ -22,7 +22,7 @@ struct NotchPositionResolver {
     static let activationHorizontalPadding: CGFloat = 16
 
     @MainActor
-    func resolve() -> NotchGeometry? {
+    func resolve(panelHeight: CGFloat = preferredPanelSize.height, panelWidth: CGFloat = preferredPanelSize.width) -> NotchGeometry? {
         guard let screen = targetScreen(from: NSScreen.screens) else {
             return nil
         }
@@ -34,10 +34,10 @@ struct NotchPositionResolver {
             auxiliaryTopLeftArea: screen.auxiliaryTopLeftArea ?? .zero,
             auxiliaryTopRightArea: screen.auxiliaryTopRightArea ?? .zero
         )
-        return Self.geometry(for: metrics)
+        return Self.geometry(for: metrics, preferredSize: NSSize(width: panelWidth, height: panelHeight))
     }
 
-    static func geometry(for metrics: NotchScreenMetrics) -> NotchGeometry {
+    static func geometry(for metrics: NotchScreenMetrics, preferredSize: NSSize = preferredPanelSize) -> NotchGeometry {
         let frame = metrics.frame
         let leftArea = metrics.auxiliaryTopLeftArea
         let rightArea = metrics.auxiliaryTopRightArea
@@ -66,9 +66,9 @@ struct NotchPositionResolver {
         let topAnchor = min(frame.maxY - metrics.safeAreaInsets.top, metrics.visibleFrame.maxY)
         let horizontalInset = min(12, frame.width / 2)
         let maximumWidth = max(1, frame.width - horizontalInset * 2)
-        let panelWidth = min(preferredPanelSize.width, maximumWidth)
+        let panelWidth = min(preferredSize.width, maximumWidth)
         let maximumHeight = max(1, topAnchor - frame.minY - 12)
-        let panelHeight = min(preferredPanelSize.height, maximumHeight)
+        let panelHeight = min(preferredSize.height, maximumHeight)
         let minimumPanelX = frame.minX + horizontalInset
         let maximumPanelX = max(minimumPanelX, frame.maxX - panelWidth - horizontalInset)
         let panelX = min(max(notchBounds.midX - panelWidth / 2, minimumPanelX), maximumPanelX)

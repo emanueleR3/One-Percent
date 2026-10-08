@@ -13,4 +13,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         dependencies?.notchWindowController.stop()
     }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        dependencies?.notchWindowController.showPanel()
+        return true
+    }
 }

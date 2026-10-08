@@ -6,6 +6,8 @@ import AppKit
 final class HoverMonitor {
     var onShow: (() -> Void)?
     var onHide: (() -> Void)?
+    var isEnabled: Bool = true
+    var isInteractionLocked: Bool = false
 
     private let closeDelay: TimeInterval
     private var activationRect: NSRect = .zero
@@ -23,6 +25,23 @@ final class HoverMonitor {
         self.activationRect = activationRect
         self.interactiveRect = interactiveRect
         evaluateCurrentMouseLocation()
+    }
+
+    func setInteractionLocked(_ locked: Bool) {
+        isInteractionLocked = locked
+        if locked {
+            closeWorkItem?.cancel()
+            closeWorkItem = nil
+        } else {
+            evaluateCurrentMouseLocation()
+        }
+    }
+
+    func handleDirectActivationEntry() {
+        guard isEnabled || isInteractionLocked else { return }
+        closeWorkItem?.cancel()
+        closeWorkItem = nil
+        apply(state.update(pointerIsInside: true))
     }
 
     func start() {
@@ -61,7 +80,28 @@ final class HoverMonitor {
         state.reset()
     }
 
-    private func evaluateCurrentMouseLocation() {
+    func forceExpanded() {
+        closeWorkItem?.cancel()
+        closeWorkItem = nil
+        _ = state.update(pointerIsInside: true)
+    }
+
+    func forceClosed() {
+        closeWorkItem?.cancel()
+        closeWorkItem = nil
+        state.reset()
+    }
+
+    func evaluateCurrentMouseLocation() {
+        if isInteractionLocked {
+            closeWorkItem?.cancel()
+            closeWorkItem = nil
+            if !state.isExpanded {
+                apply(state.update(pointerIsInside: true))
+            }
+            return
+        }
+
         guard !activationRect.isEmpty, !interactiveRect.isEmpty else {
             return
         }
@@ -69,6 +109,11 @@ final class HoverMonitor {
         let location = NSEvent.mouseLocation
         let isInActivationArea = activationRect.contains(location)
         let isInInteractiveArea = state.isExpanded && interactiveRect.contains(location)
+
+        if !isEnabled && !state.isExpanded {
+            return
+        }
+
         apply(state.update(pointerIsInside: isInActivationArea || isInInteractiveArea))
     }
 
@@ -81,15 +126,19 @@ final class HoverMonitor {
                 onShow?()
 
             case .scheduleHide:
-                scheduleHide()
+                if !isInteractionLocked {
+                    scheduleHide()
+                }
 
             case .cancelScheduledHide:
                 closeWorkItem?.cancel()
                 closeWorkItem = nil
 
             case .hide:
-                closeWorkItem = nil
-                onHide?()
+                if !isInteractionLocked {
+                    closeWorkItem = nil
+                    onHide?()
+                }
             }
         }
     }
@@ -98,7 +147,7 @@ final class HoverMonitor {
         closeWorkItem?.cancel()
 
         let workItem = DispatchWorkItem { [weak self] in
-            guard let self else {
+            guard let self, !self.isInteractionLocked else {
                 return
             }
             self.apply(self.state.closeDelayElapsed())
