@@ -19,7 +19,7 @@ struct NotchGeometry: Equatable {
 /// are assumed; the two public auxiliary areas identify the gap created by a display cutout.
 struct NotchPositionResolver {
     static let preferredPanelSize = NSSize(width: 400, height: 174)
-    static let activationHorizontalPadding: CGFloat = 16
+    static let activationHorizontalPadding: CGFloat = 0
 
     @MainActor
     func resolve(panelHeight: CGFloat = preferredPanelSize.height, panelWidth: CGFloat = preferredPanelSize.width) -> NotchGeometry? {
@@ -54,7 +54,7 @@ struct NotchPositionResolver {
                 height: metrics.safeAreaInsets.top
             )
         } else {
-            let fallbackWidth = min(180, frame.width)
+            let fallbackWidth = min(140, frame.width)
             notchBounds = NSRect(
                 x: frame.midX - (fallbackWidth / 2),
                 y: metrics.visibleFrame.maxY,
