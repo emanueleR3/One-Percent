@@ -251,7 +251,12 @@ final class NotchWindowController {
 
 private final class NotchPanel: NSPanel {
     override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
+    override var canBecomeMain: Bool { true }
+
+    override func becomeKey() {
+        super.becomeKey()
+        NSApp.activate(ignoringOtherApps: true)
+    }
 }
 
 private final class ActivationTrackingView: NSView {

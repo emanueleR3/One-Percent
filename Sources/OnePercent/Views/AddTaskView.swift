@@ -28,6 +28,21 @@ struct AddTaskView: View {
                 }
                 .accessibilityLabel("New goal title")
 
+            // Paste Button from Clipboard
+            if trimmedTitle.isEmpty, let clip = clipboardContent, !clip.isEmpty {
+                Button {
+                    title = clip
+                } label: {
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(IslandPalette.secondaryText)
+                        .frame(width: 22, height: 22)
+                }
+                .buttonStyle(.plain)
+                .help("Paste from clipboard (⌘V)")
+                .accessibilityLabel("Paste from clipboard")
+            }
+
             // Submit Button
             Button {
                 submit()
@@ -74,6 +89,10 @@ struct AddTaskView: View {
 
     private var trimmedTitle: String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var clipboardContent: String? {
+        NSPasteboard.general.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func submit() {
