@@ -206,9 +206,22 @@ final class NotchWindowController {
 
         updateActivationWindow(for: geometry.activationRect)
 
+        // The interactive rectangle covers the expanded panel PLUS the entire notch
+        // all the way to the top of the screen, so moving to the top never closes the panel.
+        let screenTop = geometry.activationRect.maxY
+        let combinedMinX = min(geometry.expandedFrame.minX, geometry.activationRect.minX) - 4
+        let combinedMaxX = max(geometry.expandedFrame.maxX, geometry.activationRect.maxX) + 4
+        let combinedMinY = geometry.expandedFrame.minY - 4
+        let fullInteractiveRect = NSRect(
+            x: combinedMinX,
+            y: combinedMinY,
+            width: combinedMaxX - combinedMinX,
+            height: (screenTop - combinedMinY) + 15
+        )
+
         hoverMonitor.update(
             activationRect: geometry.activationRect,
-            interactiveRect: geometry.expandedFrame.insetBy(dx: -2, dy: -2)
+            interactiveRect: fullInteractiveRect
         )
     }
 
