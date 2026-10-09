@@ -113,11 +113,22 @@ struct ScrollMetricsReader: NSViewRepresentable {
 final class ScrollMetricsProbeView: NSView {
     var onChange: ((CGFloat, CGFloat, CGFloat) -> Void)?
     var lastResetToken: AnyHashable?
+
+    /// The list is meant to sit at the very top until the user scrolls it. While the card scales in
+    /// and out, AppKit re-derives the clip view's origin on a pixel grid of the scaled space and
+    /// leaves it a few points down; this flag lets the list correct that drift (and nothing else).
+    private(set) var isPinnedToTop = true
+    /// Anything beyond this is a real scroll, not rounding drift.
+    private static let driftLimit: CGFloat = 12
+
     private var observers: [NSObjectProtocol] = []
+    private var wheelMonitor: Any?
+    private var snapScheduled = false
     private var lastReport: (CGFloat, CGFloat, CGFloat) = (-1, -1, -1)
 
     deinit {
         observers.forEach { NotificationCenter.default.removeObserver($0) }
+        if let wheelMonitor { NSEvent.removeMonitor(wheelMonitor) }
     }
 
     override func viewDidMoveToWindow() {
@@ -128,6 +139,8 @@ final class ScrollMetricsProbeView: NSView {
     private func attach() {
         observers.forEach { NotificationCenter.default.removeObserver($0) }
         observers.removeAll()
+        if let wheelMonitor { NSEvent.removeMonitor(wheelMonitor) }
+        wheelMonitor = nil
 
         guard let scrollView = enclosingScrollView else {
             // The hosting layer may not be wired up yet on the first pass.
@@ -144,8 +157,25 @@ final class ScrollMetricsProbeView: NSView {
         observers.append(
             NotificationCenter.default.addObserver(
                 forName: NSView.boundsDidChangeNotification, object: clipView, queue: .main
-            ) { [weak self] _ in self?.report() }
+            ) { [weak self] _ in
+                self?.boundsDidChange()
+            }
         )
+        observers.append(
+            NotificationCenter.default.addObserver(
+                forName: NSScrollView.willStartLiveScrollNotification, object: scrollView, queue: .main
+            ) { [weak self] _ in
+                self?.isPinnedToTop = false
+            }
+        )
+        // A notched mouse wheel does not start a "live" scroll, so watch for wheel events over the list.
+        wheelMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self, weak scrollView] event in
+            if let self, let scrollView, event.window === scrollView.window,
+               scrollView.bounds.contains(scrollView.convert(event.locationInWindow, from: nil)) {
+                self.isPinnedToTop = false
+            }
+            return event
+        }
         if let documentView = scrollView.documentView {
             documentView.postsFrameChangedNotifications = true
             observers.append(
@@ -157,7 +187,28 @@ final class ScrollMetricsProbeView: NSView {
         report()
     }
 
+    private func boundsDidChange() {
+        guard let origin = enclosingScrollView?.contentView.bounds.origin else { return }
+        if isPinnedToTop, abs(origin.y) >= Self.driftLimit {
+            isPinnedToTop = false
+        }
+        report()
+        snapToTopIfPinned(origin)
+    }
+
+    /// Puts a drifted origin back on the exact top, on the next turn so AppKit finishes its own layout first.
+    private func snapToTopIfPinned(_ origin: NSPoint) {
+        guard isPinnedToTop, !snapScheduled, abs(origin.y) > 0.001 || abs(origin.x) > 0.001 else { return }
+        snapScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.snapScheduled = false
+            if self.isPinnedToTop { self.scrollToTop() }
+        }
+    }
+
     func scrollToTop() {
+        isPinnedToTop = true
         guard let scrollView = enclosingScrollView, let documentView = scrollView.documentView else { return }
         let top = documentView.isFlipped ? 0 : max(0, documentView.frame.height - scrollView.contentView.bounds.height)
         scrollView.contentView.scroll(to: NSPoint(x: 0, y: top))
