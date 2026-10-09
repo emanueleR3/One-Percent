@@ -77,6 +77,8 @@ struct TodayWidgetView: View {
                                 .font(.system(size: 15, weight: .medium, design: .rounded))
                                 .foregroundStyle(WidgetPalette.primary)
                                 .lineLimit(1)
+                                // Goal titles are private: hidden while the phone is locked (Lock Screen, StandBy).
+                                .privacySensitive()
                             if goal.isTheOne {
                                 Image(systemName: "star.fill").font(.system(size: 10)).foregroundStyle(WidgetPalette.lavender)
                             }
@@ -109,6 +111,8 @@ struct TodayWidgetView: View {
             Text(entry.current?.goals.first?.title ?? statusText)
                 .font(.system(size: 12, design: .rounded))
                 .lineLimit(1)
+                // On the Lock Screen the next goal's title stays hidden until the phone is unlocked.
+                .privacySensitive(entry.current?.goals.first != nil)
             ProgressView(value: ratio)
         }
     }

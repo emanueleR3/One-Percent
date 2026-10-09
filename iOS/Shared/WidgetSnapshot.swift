@@ -65,7 +65,8 @@ enum AppGroup {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .secondsSince1970
         if let data = try? encoder.encode(snapshot) {
-            try? data.write(to: url, options: .atomic)
+            // Readable once the phone has been unlocked after a restart (the widget draws while it is locked), never before.
+            try? data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         }
     }
 
