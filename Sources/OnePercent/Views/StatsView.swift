@@ -1,5 +1,13 @@
 import SwiftUI
 
+/// Sizes both stats tabs share, so switching between them never moves the footer or resizes the page.
+enum StatsLayout {
+    /// Room for an eyebrow, a number and a one-line caption.
+    static let tileRowHeight: CGFloat = 66
+    /// The block under the tiles (heatmap + score, or day bars + top goals, or the empty state).
+    static let detailHeight: CGFloat = 112
+}
+
 /// Second page of the panel: streak, completion rates, 12-week heatmap and the 1% score.
 struct StatsView: View {
     enum Tab: Hashable {
@@ -10,7 +18,13 @@ struct StatsView: View {
     @ObservedObject var store: TaskStore
     var onSelectDay: (Date) -> Void
 
-    @State private var tab: Tab = .overview
+    @State private var tab: Tab
+
+    init(store: TaskStore, onSelectDay: @escaping (Date) -> Void, initialTab: Tab = .overview) {
+        self.store = store
+        self.onSelectDay = onSelectDay
+        self._tab = State(initialValue: initialTab)
+    }
 
     var body: some View {
         let summary = store.tracking
@@ -31,7 +45,7 @@ struct StatsView: View {
 
                     ScoreCardView(score: summary.score, curve: summary.scoreCurve, perfectDays: summary.perfectDays)
                 }
-                .frame(height: 112)
+                .frame(height: StatsLayout.detailHeight)
             case .focus:
                 FocusStatsView(store: store)
             }
@@ -131,7 +145,7 @@ private struct StatTilesRow: View {
                 tint: IslandPalette.primaryText
             )
         }
-        .padding(.vertical, 8)
+        .frame(height: StatsLayout.tileRowHeight)
         .background(
             RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
                 .fill(IslandPalette.restFill)
@@ -164,12 +178,15 @@ private struct StatTile: View {
                     Text(unit)
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundStyle(IslandPalette.tertiaryText)
+                        .lineLimit(1)
                 }
             }
 
             Text(caption)
                 .font(IslandTypography.statCaption)
                 .foregroundStyle(IslandPalette.tertiaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)

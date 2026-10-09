@@ -262,7 +262,7 @@
 "The real notch covers the middle" = "Il notch vero ne copre il centro";
 "Time" = "Ora";
 "Time for a long break: %d minutes." = "È ora di una pausa lunga: %d minuti.";
-"Time is kept when you pause or finish" = "Il tempo viene salvato quando metti in pausa o finisci";
+"Time is kept when you pause or finish" = "Il tempo si salva in pausa o alla fine";
 "Timed blocks with breaks, instead of a free stopwatch" = "Blocchi a tempo con pause, invece di un cronometro libero";
 "Timing" = "Cronometro";
 "Timing %@, %@" = "Cronometro su %@, %@";
@@ -292,7 +292,7 @@
 "day" = "giorno";
 "days" = "giorni";
 "dev build" = "build di sviluppo";
-"goals done" = "obiettivi completati";
+"goals done" = "completati";
 "move to tomorrow?" = "sposto a domani?";
 "moved to tomorrow" = "rimandati a domani";
 "no goals" = "nessun obiettivo";

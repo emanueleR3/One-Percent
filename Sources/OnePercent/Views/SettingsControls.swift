@@ -17,7 +17,6 @@ struct OptionChips<Value: Hashable>: View {
             ForEach(options) { option in
                 OptionChip(label: option.label, isOn: option.value == selection) {
                     selection = option.value
-                    IslandHaptics.tick()
                 }
             }
         }

@@ -96,7 +96,6 @@ struct GoalDetailView: View {
     private func theOneButton(for task: TaskItem) -> some View {
         Button {
             store.toggleTheOne(id: task.id)
-            IslandHaptics.tick()
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: task.isTheOne ? "star.fill" : "star")
@@ -193,7 +192,6 @@ struct GoalDetailView: View {
                 if canTime {
                     Button {
                         focusController.toggle(taskID: task.id)
-                        IslandHaptics.tick()
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: running ? "pause.fill" : "play.fill")
@@ -330,7 +328,6 @@ struct GoalDetailView: View {
                         withAnimation(IslandAnimations.statusTransition) {
                             store.toggleSubtask(taskID: task.id, subtaskID: step.id)
                         }
-                        IslandHaptics.tick()
                     },
                     onRename: { store.renameSubtask(taskID: task.id, subtaskID: step.id, title: $0) },
                     onDelete: {

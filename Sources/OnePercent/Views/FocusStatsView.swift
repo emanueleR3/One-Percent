@@ -21,7 +21,7 @@ struct FocusStatsView: View {
                     DayBarsView(days: summary.days, calendar: store.dateService.currentCalendar)
                     TopGoalsView(goals: summary.topGoals)
                 }
-                .frame(height: 112)
+                .frame(height: StatsLayout.detailHeight)
             }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -43,7 +43,7 @@ struct FocusStatsView: View {
                 caption: L("on average")
             )
         }
-        .padding(.vertical, 8)
+        .frame(height: StatsLayout.tileRowHeight)
         .background(
             RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
                 .fill(IslandPalette.restFill)
@@ -70,7 +70,7 @@ struct FocusStatsView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 112)
+        .frame(height: StatsLayout.detailHeight)
         .background(
             RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
                 .fill(IslandPalette.restFill)
@@ -95,6 +95,8 @@ private struct FocusTile: View {
             Text(caption)
                 .font(IslandTypography.statCaption)
                 .foregroundStyle(IslandPalette.tertiaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)

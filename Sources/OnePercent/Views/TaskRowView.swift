@@ -162,11 +162,9 @@ struct TaskRowView: View {
 
     private var statusButton: some View {
         Button {
-            let isCompleting = task.status == .todo || task.status == .inProgress
             withAnimation(IslandAnimations.statusTransition) {
                 toggleQuickStatus()
             }
-            if isCompleting { IslandHaptics.tick() }
         } label: {
             StatusMarkView(status: task.status, isHovered: isCheckHovered)
                 .frame(width: 24, height: 24)

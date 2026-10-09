@@ -47,6 +47,7 @@ struct EyebrowText: View {
         Text(text.uppercased())
             .font(IslandTypography.eyebrow)
             .tracking(0.6)
+            .lineLimit(1)
             .foregroundStyle(IslandPalette.tertiaryText)
     }
 }
@@ -82,7 +83,6 @@ struct IslandSwitch: View {
     var body: some View {
         Button {
             isOn.toggle()
-            IslandHaptics.tick()
         } label: {
             ZStack(alignment: isOn ? .trailing : .leading) {
                 Capsule()

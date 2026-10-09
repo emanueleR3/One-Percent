@@ -51,14 +51,19 @@ enum IslandAnimations {
 }
 
 /// Trackpad haptics. No-ops on hardware without a Force Touch trackpad.
+///
+/// A click already gives the trackpad's own feedback (on press and on release), so controls never
+/// add one of their own: it would stack into a second and third buzz. Haptics here only mark
+/// moments a click cannot, like the last goal of the day or the end of a focus block.
 enum IslandHaptics {
+    /// Where haptics go; tests swap it to count them.
     @MainActor
-    static func tick() {
-        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+    static var performer: (NSHapticFeedbackManager.FeedbackPattern) -> Void = { pattern in
+        NSHapticFeedbackManager.defaultPerformer.perform(pattern, performanceTime: .now)
     }
 
     @MainActor
     static func success() {
-        NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
+        performer(.levelChange)
     }
 }

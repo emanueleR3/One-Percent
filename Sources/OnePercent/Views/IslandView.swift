@@ -313,11 +313,9 @@ struct IslandView: View {
                 withAnimation(IslandAnimations.defaultSpring) {
                     store.toggleTheOne(id: task.id)
                 }
-                IslandHaptics.tick()
             },
             onToggleTimer: {
                 focus.toggle(taskID: task.id)
-                IslandHaptics.tick()
             }
         )
         .matchedGeometryEffect(id: task.id, in: taskListNamespace)
@@ -439,7 +437,6 @@ struct IslandView: View {
     private func moveRemainingToTomorrow() {
         let ids = store.deferRemaining(for: store.selectedDate)
         guard !ids.isEmpty else { return }
-        IslandHaptics.success()
         withAnimation(IslandAnimations.defaultSpring) { movedGoalIDs = ids }
 
         movedBannerToken += 1
