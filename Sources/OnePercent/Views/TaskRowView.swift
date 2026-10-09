@@ -26,6 +26,8 @@ struct TaskRowView: View {
     @State private var pulse = false
     @State private var isHandleHovered = false
     @State private var isDraggingHandle = false
+    /// Shows the row as if the pointer were over it. For previews and tests.
+    var previewHover = false
     @State private var isEditing = false
     @State private var editingTitle = ""
     @FocusState private var isFieldFocused: Bool
@@ -39,6 +41,10 @@ struct TaskRowView: View {
             accessoriesView
             trailingChip
         }
+        // While the pointer is over the row the hover actions take the right edge. They get their own
+        // room (tags, steps and the rest slide left) instead of sitting on top of the icons, which
+        // would hide them and swallow their clicks.
+        .padding(.trailing, showsHoverActions ? hoverActionsReserve : 0)
         .padding(.horizontal, 4)
         .padding(.vertical, 3)
         .frame(minHeight: IslandMetrics.rowHeight)
@@ -291,7 +297,13 @@ struct TaskRowView: View {
     }
 
     private var showsHoverActions: Bool {
-        isHovered && !showsTimePill && task.status != .deferred && !isEditing && !isDraggingHandle
+        (isHovered || previewHover) && !showsTimePill && task.status != .deferred && !isEditing && !isDraggingHandle
+    }
+
+    /// Width the hover actions occupy: the play button (only on goals not started yet) and the "more" menu.
+    private var hoverActionsReserve: CGFloat {
+        let play: CGFloat = (task.status == .todo && onToggleTimer != nil) ? 24 : 0
+        return play + 26 + 4
     }
 
     @ViewBuilder
@@ -419,23 +431,7 @@ struct TaskRowView: View {
             }
             .help(L("Change status or defer to tomorrow"))
         }
-        .padding(.leading, 26)
-        .background(
-            // Fades whatever is underneath so the buttons never sit on top of text.
-            LinearGradient(
-                stops: [
-                    .init(color: Self.scrimColor.opacity(0), location: 0),
-                    .init(color: Self.scrimColor, location: 0.4),
-                    .init(color: Self.scrimColor, location: 1)
-                ],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        )
     }
-
-    /// The row's hover wash over the panel, flattened to one opaque color.
-    private static let scrimColor = Color(red: 0.085, green: 0.085, blue: 0.09)
 
     private func statusMenu<Label: View>(@ViewBuilder label: @escaping () -> Label) -> some View {
         TaskStatusMenu(

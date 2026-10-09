@@ -208,4 +208,4 @@ final class AppPreferences: ObservableObject {
     }
 }
 
-extension AppPreferences: FocusSettings {}
+extension AppPreferences: @preconcurrency FocusSettings {}
