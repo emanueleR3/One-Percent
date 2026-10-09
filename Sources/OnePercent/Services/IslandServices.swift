@@ -8,4 +8,6 @@ struct IslandServices {
     let reminders: ReminderCoordinator?
     let launchAtLogin: LaunchAtLoginController
     let smartAdd: SmartAddService
+    /// Focus timer and Pomodoro.
+    let focus: FocusController
 }

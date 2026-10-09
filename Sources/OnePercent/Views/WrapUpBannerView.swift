@@ -27,10 +27,10 @@ struct WrapUpBannerView: View {
 
             switch mode {
             case .prompt:
-                actionButton("Move all", action: onMove)
+                actionButton(L("Move all"), action: onMove)
                 dismissButton
             case .moved:
-                actionButton("Undo", action: onUndo)
+                actionButton(L("Undo"), action: onUndo)
             }
         }
         .padding(.leading, 10)
@@ -54,14 +54,14 @@ struct WrapUpBannerView: View {
     private var message: some View {
         switch mode {
         case .prompt(let goals):
-            (Text("\(goals) \(goals == 1 ? "goal" : "goals") left")
+            (Text(Lp("%d goal left", "%d goals left", goals))
                 .foregroundStyle(IslandPalette.primaryText)
-             + Text("  ·  move to tomorrow?")
+             + Text("  ·  " + L("move to tomorrow?"))
                 .foregroundStyle(IslandPalette.secondaryText))
                 .font(IslandTypography.statusLabel)
                 .lineLimit(1)
         case .moved(let goals):
-            (Text("Moved \(goals) to tomorrow")
+            (Text(L("Moved %d to tomorrow", goals))
                 .foregroundStyle(IslandPalette.primaryText))
                 .font(IslandTypography.statusLabel)
                 .lineLimit(1)
@@ -95,7 +95,7 @@ struct WrapUpBannerView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(PressScaleButtonStyle(scale: 0.88))
-        .help("Not tonight")
-        .accessibilityLabel("Dismiss wrap-up for today")
+        .help(L("Not tonight"))
+        .accessibilityLabel(L("Dismiss wrap-up for today"))
     }
 }

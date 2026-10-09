@@ -70,9 +70,9 @@ private struct WeekDayCell: View {
     }
 
     private var summary: String {
-        if !day.hasGoals { return "no goals" }
-        if day.total == 0 { return "all moved to tomorrow" }
-        return "\(day.completed) of \(day.total) done"
+        if !day.hasGoals { return L("no goals") }
+        if day.total == 0 { return L("all moved to tomorrow") }
+        return L("%d of %d done", day.completed, day.total)
     }
 
     private var helpText: String {

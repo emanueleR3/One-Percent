@@ -77,7 +77,7 @@ private struct WeekdayToggle: View {
         .animation(IslandAnimations.hoverFade, value: isHovered)
         .help(fullName)
         .accessibilityLabel(fullName)
-        .accessibilityValue(isOn ? "On" : "Off")
+        .accessibilityValue(isOn ? L("On") : L("Off"))
         .accessibilityAddTraits(.isButton)
     }
 }

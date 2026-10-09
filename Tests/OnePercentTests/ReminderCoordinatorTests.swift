@@ -2,10 +2,11 @@ import XCTest
 @testable import OnePercent
 
 @MainActor
-private final class FakeScheduler: NotificationScheduling {
+final class FakeScheduler: NotificationScheduling {
     var onMoveToTomorrow: (() -> Void)?
     var onOpenRequested: (() -> Void)?
     var status: NotificationAuthorization = .authorized
+    private(set) var delivered: [(id: String, title: String, body: String)] = []
     private(set) var scheduled: [ReminderRequest] = []
     private(set) var removedBatches: [[String]] = []
     private(set) var started = false
@@ -15,6 +16,7 @@ private final class FakeScheduler: NotificationScheduling {
     func requestAuthorization() async -> Bool { status == .authorized }
     func removePending(ids: [String]) { removedBatches.append(ids); scheduled.removeAll { ids.contains($0.id) } }
     func schedule(_ request: ReminderRequest, calendar: Calendar) async { scheduled.append(request) }
+    func deliver(id: String, title: String, body: String) async { delivered.append((id, title, body)) }
 }
 
 @MainActor

@@ -12,6 +12,11 @@
     <string>com.onepercent.app</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>it</string>
+    </array>
     <key>CFBundleName</key>
     <string>One Percent</string>
     <key>CFBundlePackageType</key>

@@ -91,3 +91,127 @@ final class AppPreferencesNotificationTests: XCTestCase {
         defaults.removePersistentDomain(forName: "OnePercentTests.prefs.notifications")
     }
 }
+
+@MainActor
+final class AppPreferencesNotchTests: XCTestCase {
+    private var defaults: UserDefaults!
+
+    override func setUp() async throws {
+        defaults = UserDefaults(suiteName: "OnePercentTests.prefs.notch")!
+        defaults.removePersistentDomain(forName: "OnePercentTests.prefs.notch")
+    }
+
+    override func tearDown() async throws {
+        defaults.removePersistentDomain(forName: "OnePercentTests.prefs.notch")
+    }
+
+    func testNotchDefaults() {
+        let prefs = AppPreferences(defaults: defaults)
+        XCTAssertTrue(prefs.indicatorEnabled)
+        XCTAssertEqual(prefs.virtualNotchWidth, 0)
+        XCTAssertEqual(prefs.virtualNotchHeight, 0)
+        XCTAssertTrue(prefs.indicatorShowsTimer)
+        XCTAssertEqual(prefs.screenSelection, .automatic)
+        XCTAssertEqual(prefs.panelAnchor, .center)
+        XCTAssertEqual(prefs.openDelay, 0, accuracy: 0.0001)
+        XCTAssertEqual(prefs.closeDelay, 0.16, accuracy: 0.0001)
+    }
+
+    func testFocusDefaults() {
+        let prefs = AppPreferences(defaults: defaults)
+        XCTAssertFalse(prefs.pomodoroEnabled)
+        XCTAssertEqual(prefs.pomodoroConfig, PomodoroConfig())
+        XCTAssertTrue(prefs.focusSound)
+        XCTAssertFalse(prefs.focusNotifications)
+    }
+
+    func testNotchAndFocusSettingsPersist() {
+        let first = AppPreferences(defaults: defaults)
+        first.indicatorEnabled = false
+        first.virtualNotchWidth = 280
+        first.virtualNotchHeight = 36
+        first.screenSelection = .display("UUID-1")
+        first.panelAnchor = .trailing
+        first.openDelay = 0.4
+        first.closeDelay = 0.8
+        first.pomodoroEnabled = true
+        first.focusMinutes = 50
+        first.shortBreakMinutes = 10
+        first.longBreakMinutes = 20
+        first.pomodoroRounds = 3
+
+        let second = AppPreferences(defaults: defaults)
+        XCTAssertFalse(second.indicatorEnabled)
+        XCTAssertEqual(second.virtualNotchWidth, 280)
+        XCTAssertEqual(second.virtualNotchHeight, 36)
+        XCTAssertEqual(second.screenSelection, .display("UUID-1"))
+        XCTAssertEqual(second.panelAnchor, .trailing)
+        XCTAssertEqual(second.openDelay, 0.4, accuracy: 0.0001)
+        XCTAssertEqual(second.closeDelay, 0.8, accuracy: 0.0001)
+        XCTAssertEqual(second.pomodoroConfig, PomodoroConfig(focus: 50 * 60, shortBreak: 10 * 60, longBreak: 20 * 60, roundsBeforeLongBreak: 3))
+    }
+
+    func testUnknownStoredValuesFallBackToDefaults() {
+        defaults.set("diagonal", forKey: "panelAnchor")
+        let prefs = AppPreferences(defaults: defaults)
+        XCTAssertEqual(prefs.panelAnchor, .center)
+    }
+
+    func testNotchSizesStayAutomaticOrUsable() {
+        defaults.set(-5.0, forKey: "virtualNotchWidth")
+        defaults.set(99999.0, forKey: "virtualNotchHeight")
+        let prefs = AppPreferences(defaults: defaults)
+        XCTAssertEqual(prefs.virtualNotchWidth, 0)
+        XCTAssertEqual(prefs.virtualNotchHeight, 600)
+        XCTAssertEqual(AppPreferences.clampNotchSize(.nan), 0)
+        XCTAssertEqual(AppPreferences.clampNotchSize(5), 16)
+    }
+
+    func testDelaysAreClamped() {
+        let prefs = AppPreferences(defaults: defaults)
+        prefs.openDelay = -3
+        XCTAssertEqual(prefs.openDelay, 0, accuracy: 0.0001)
+        prefs.closeDelay = 99
+        XCTAssertEqual(prefs.closeDelay, AppPreferences.maxDelay, accuracy: 0.0001)
+    }
+}
+
+@MainActor
+final class AppPreferencesLanguageTests: XCTestCase {
+    private var defaults: UserDefaults!
+
+    override func setUp() async throws {
+        defaults = UserDefaults(suiteName: "OnePercentTests.prefs.language")!
+        defaults.removePersistentDomain(forName: "OnePercentTests.prefs.language")
+    }
+
+    override func tearDown() async throws {
+        defaults.removePersistentDomain(forName: "OnePercentTests.prefs.language")
+    }
+
+    func testDefaultsToFollowingTheSystem() {
+        let prefs = AppPreferences(defaults: defaults)
+        XCTAssertEqual(prefs.language, .system)
+    }
+
+    func testLanguageChoicePersists() {
+        let first = AppPreferences(defaults: defaults)
+        first.language = .italian
+        XCTAssertEqual(AppPreferences(defaults: defaults).language, .italian)
+    }
+
+    func testResolvedLanguageFollowsTheChoice() {
+        let prefs = AppPreferences(defaults: defaults)
+        prefs.language = .english
+        XCTAssertEqual(prefs.resolvedLanguage(preferred: ["it-IT"]), .english)
+        prefs.language = .italian
+        XCTAssertEqual(prefs.resolvedLanguage(preferred: ["en-US"]), .italian)
+        prefs.language = .system
+        XCTAssertEqual(prefs.resolvedLanguage(preferred: ["it-IT"]), .italian)
+    }
+
+    func testAnUnknownStoredValueMeansSystem() {
+        defaults.set("klingon", forKey: "language")
+        XCTAssertEqual(AppPreferences(defaults: defaults).language, .system)
+    }
+}

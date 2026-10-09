@@ -12,7 +12,18 @@ struct NotchScreenMetrics {
 struct NotchGeometry: Equatable {
     let expandedFrame: NSRect
     let activationRect: NSRect
+    /// The notch itself, or the stand-in strip where a display has none.
+    let notchBounds: NSRect
     let hasPhysicalNotch: Bool
+    /// The whole display, so overlays can sit on its very top edge.
+    let screenFrame: NSRect
+}
+
+/// Where the panel hangs on a display without a notch.
+enum PanelAnchor: String, CaseIterable, Sendable {
+    case center
+    case leading
+    case trailing
 }
 
 /// Resolves all screen coordinates at runtime. No pixel dimensions of a particular MacBook
@@ -26,9 +37,11 @@ struct NotchPositionResolver {
     func resolve(
         panelHeight: CGFloat = preferredPanelSize.height,
         panelWidth: CGFloat = preferredPanelSize.width,
-        overshootHeadroom: CGFloat = defaultHeadroom
+        overshootHeadroom: CGFloat = defaultHeadroom,
+        selection: ScreenSelection = .automatic,
+        anchor: PanelAnchor = .center
     ) -> NotchGeometry? {
-        guard let screen = targetScreen(from: NSScreen.screens) else {
+        guard let screen = targetScreen(from: NSScreen.screens, selection: selection) else {
             return nil
         }
 
@@ -42,6 +55,7 @@ struct NotchPositionResolver {
         return Self.geometry(
             for: metrics,
             preferredSize: NSSize(width: panelWidth, height: panelHeight),
+            anchor: anchor,
             overshootHeadroom: overshootHeadroom
         )
     }
@@ -49,6 +63,7 @@ struct NotchPositionResolver {
     static func geometry(
         for metrics: NotchScreenMetrics,
         preferredSize: NSSize = preferredPanelSize,
+        anchor: PanelAnchor = .center,
         overshootHeadroom: CGFloat = 0
     ) -> NotchGeometry {
         let frame = metrics.frame
@@ -58,6 +73,15 @@ struct NotchPositionResolver {
             && !rightArea.isEmpty
             && leftArea.maxX < rightArea.minX
 
+        let topAnchor = min(frame.maxY - metrics.safeAreaInsets.top, metrics.visibleFrame.maxY)
+        let horizontalInset = min(12, frame.width / 2)
+        let maximumWidth = max(1, frame.width - horizontalInset * 2)
+
+        let cardWidth = min(preferredSize.width, maximumWidth)
+        let totalWindowWidth = min(cardWidth + overshootHeadroom * 2, frame.width)
+
+        // A real notch fixes the horizontal position. Without one, the panel can hang from the
+        // centre or from either corner, and the stand-in notch strip follows it.
         let notchBounds: NSRect
         if hasPhysicalNotch {
             notchBounds = NSRect(
@@ -68,20 +92,19 @@ struct NotchPositionResolver {
             )
         } else {
             let fallbackWidth = min(160, frame.width)
+            let anchoredMidX: CGFloat
+            switch anchor {
+            case .center: anchoredMidX = frame.midX
+            case .leading: anchoredMidX = frame.minX + totalWindowWidth / 2
+            case .trailing: anchoredMidX = frame.maxX - totalWindowWidth / 2
+            }
             notchBounds = NSRect(
-                x: frame.midX - (fallbackWidth / 2),
+                x: anchoredMidX - (fallbackWidth / 2),
                 y: metrics.visibleFrame.maxY,
                 width: fallbackWidth,
                 height: max(24, frame.maxY - metrics.visibleFrame.maxY)
             )
         }
-
-        let topAnchor = min(frame.maxY - metrics.safeAreaInsets.top, metrics.visibleFrame.maxY)
-        let horizontalInset = min(12, frame.width / 2)
-        let maximumWidth = max(1, frame.width - horizontalInset * 2)
-
-        let cardWidth = min(preferredSize.width, maximumWidth)
-        let totalWindowWidth = min(cardWidth + overshootHeadroom * 2, frame.width)
 
         let maximumHeight = max(1, topAnchor - frame.minY - 12)
         let cardHeight = min(preferredSize.height, maximumHeight)
@@ -109,14 +132,26 @@ struct NotchPositionResolver {
         return NotchGeometry(
             expandedFrame: expandedFrame,
             activationRect: activationRect,
-            hasPhysicalNotch: hasPhysicalNotch
+            notchBounds: notchBounds,
+            hasPhysicalNotch: hasPhysicalNotch,
+            screenFrame: frame
         )
     }
 
     @MainActor
-    private func targetScreen(from screens: [NSScreen]) -> NSScreen? {
-        let builtIn = screens.first(where: Self.isBuiltIn)
-        return builtIn ?? NSScreen.main ?? screens.first
+    private func targetScreen(from screens: [NSScreen], selection: ScreenSelection) -> NSScreen? {
+        let descriptors = screens.map { screen in
+            ScreenDescriptor(
+                id: screen.stableDisplayID ?? "\(screen.frame)",
+                isBuiltIn: Self.isBuiltIn(screen),
+                isMenuBarScreen: screen == screens.first
+            )
+        }
+        guard let chosen = ScreenChooser.choose(from: descriptors, selection: selection),
+              let index = descriptors.firstIndex(where: { $0.id == chosen }) else {
+            return nil
+        }
+        return screens[index]
     }
 
     private static func isBuiltIn(_ screen: NSScreen) -> Bool {

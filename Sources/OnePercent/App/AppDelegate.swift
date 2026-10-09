@@ -7,6 +7,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let dependencies = AppDependencies()
         self.dependencies = dependencies
+        // The menu was built before the saved language was applied.
+        OnePercentApplication.rebuildApplicationMenu()
         dependencies.notchWindowController.start()
         dependencies.reminders?.start()
     }

@@ -34,7 +34,7 @@ struct TagChipView: View {
                 .buttonStyle(.plain)
                 .opacity(isHovered ? 1 : 0)
                 .frame(width: isHovered ? 10 : 0)
-                .accessibilityLabel("Remove tag \(tag.name)")
+                .accessibilityLabel(L("Remove tag %@", tag.name))
             }
         }
         .padding(.horizontal, 7)
@@ -46,6 +46,6 @@ struct TagChipView: View {
         .onHover { isHovered = $0 }
         .animation(IslandAnimations.hoverFade, value: isHovered)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Tag \(tag.name)")
+        .accessibilityLabel(L("Tag %@", tag.name))
     }
 }

@@ -31,7 +31,7 @@ struct ProgressHeroView: View {
                     .font(IslandTypography.heroHeadline)
                     .foregroundStyle(isComplete ? IslandPalette.completedAccent : IslandPalette.primaryText)
                 if theOneIsOpen {
-                    (Text(Image(systemName: "star.fill")) + Text(" The One is open"))
+                    (Text(Image(systemName: "star.fill")) + Text(" " + L("The One is open")))
                         .font(IslandTypography.secondaryMetadata)
                         .foregroundStyle(IslandPalette.theOneAccent)
                 } else {
@@ -45,7 +45,7 @@ struct ProgressHeroView: View {
             .animation(IslandAnimations.hoverFade, value: theOneIsOpen)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(store.dateService.formatProgressHeader(for: store.selectedDate)). \(progress.percentageInt) percent. \(headline), \(subline)")
+        .accessibilityLabel(L("%@. %d percent. %@, %@", store.dateService.formatProgressHeader(for: store.selectedDate), progress.percentageInt, headline, subline))
     }
 
     /// The single most important goal of the day is still waiting; nudge it into the hero.
@@ -56,18 +56,18 @@ struct ProgressHeroView: View {
 
     private var headline: String {
         if progress.totalCount == 0 {
-            return progress.hasOnlyDeferredTasks ? "All moved" : "No goals"
+            return progress.hasOnlyDeferredTasks ? L("All moved") : L("No goals")
         }
-        if isComplete { return "All done" }
-        return "\(progress.completedCount) of \(progress.totalCount)"
+        if isComplete { return L("All done") }
+        return L("%d of %d", progress.completedCount, progress.totalCount)
     }
 
     private var subline: String {
         if progress.totalCount == 0 {
-            return progress.hasOnlyDeferredTasks ? "to tomorrow" : "yet"
+            return progress.hasOnlyDeferredTasks ? L("to tomorrow") : L("yet")
         }
-        if isComplete { return "Clean sweep" }
+        if isComplete { return L("Clean sweep") }
         let remaining = progress.totalCount - progress.completedCount
-        return "\(remaining) left"
+        return L("%d left", remaining)
     }
 }

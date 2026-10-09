@@ -15,6 +15,11 @@ final class AppDependencies {
 
     var reminders: ReminderCoordinator? { services.reminders }
 
+    private static func apply(language: AppLanguage, to dateService: DateService) {
+        Localizer.shared.setLanguage(language)
+        dateService.setLocale(language.locale)
+    }
+
     init(
         persistenceController: PersistenceController = PersistenceController(),
         dateService: DateService? = nil
@@ -31,17 +36,23 @@ final class AppDependencies {
 
         let preferences = AppPreferences()
         self.preferences = preferences
+        Self.apply(language: preferences.resolvedLanguage(), to: dateSvc)
 
-        // System notifications need a real app bundle; a bare `swift run` binary has none.
-        let reminders: ReminderCoordinator? = Bundle.main.bundleURL.pathExtension == "app"
-            ? ReminderCoordinator(store: store, preferences: preferences, scheduler: SystemNotificationCenter())
+        // System notifications need a real app bundle; a bare `swift run` binary has none. One
+        // center serves both the daily reminders and the focus alerts.
+        let notifications: SystemNotificationCenter? = Bundle.main.bundleURL.pathExtension == "app"
+            ? SystemNotificationCenter()
             : nil
+        let reminders = notifications.map {
+            ReminderCoordinator(store: store, preferences: preferences, scheduler: $0)
+        }
 
         let services = IslandServices(
             preferences: preferences,
             reminders: reminders,
             launchAtLogin: LaunchAtLoginController(),
-            smartAdd: SmartAddService()
+            smartAdd: SmartAddService(),
+            focus: FocusController(store: store, preferences: preferences, scheduler: notifications)
         )
         self.services = services
 
@@ -52,6 +63,19 @@ final class AppDependencies {
         reminders?.onOpenRequested = { [weak windowController] in
             windowController?.showPanel()
         }
+
+        // The language is picked in Settings and applies at once: texts, dates, both menus and the
+        // pending reminders all follow.
+        preferences.$language
+            .dropFirst()
+            .sink { [weak dateSvc] choice in
+                // `@Published` emits before the property changes, so use the value it hands over.
+                guard let dateSvc else { return }
+                Self.apply(language: choice.resolve(), to: dateSvc)
+                OnePercentApplication.rebuildApplicationMenu()
+                reminders?.languageDidChange()
+            }
+            .store(in: &cancellables)
 
         // Preferences are the single source of truth for "open on hover"; the menu item and the
         // settings page both write to it.

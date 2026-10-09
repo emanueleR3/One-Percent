@@ -58,15 +58,15 @@ struct HabitSchedule: Codable, Equatable, Hashable, Sendable {
     func label(calendar: Calendar) -> String {
         switch kind {
         case .daily:
-            return "Every day"
+            return L("Every day")
         case .weekdays:
-            return "Weekdays"
+            return L("Weekdays")
         case .weekly:
             let symbols = calendar.weekdaySymbols
             if let weekday, symbols.indices.contains(weekday - 1) {
-                return "Every \(symbols[weekday - 1].localizedCapitalized)"
+                return L("Every %@", symbols[weekday - 1])
             }
-            return "Every week"
+            return L("Every week")
         case .custom:
             let symbols = calendar.shortWeekdaySymbols
             let first = calendar.firstWeekday

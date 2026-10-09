@@ -36,6 +36,11 @@ struct TaskItem: Identifiable, Codable, Equatable, Sendable {
     var isTheOne: Bool
     /// Set on occurrences generated from a recurring `Habit`.
     var habitID: UUID?
+    /// Finished stretches of focused work on this goal.
+    var focusSessions: [FocusSession]
+    /// When the running stretch began; nil when no timer is running on this goal.
+    var timerStartedAt: Date?
+    var timerIsPomodoro: Bool
 
     init(
         id: UUID = UUID(),
@@ -52,7 +57,10 @@ struct TaskItem: Identifiable, Codable, Equatable, Sendable {
         note: String? = nil,
         subtasks: [SubTask] = [],
         isTheOne: Bool = false,
-        habitID: UUID? = nil
+        habitID: UUID? = nil,
+        focusSessions: [FocusSession] = [],
+        timerStartedAt: Date? = nil,
+        timerIsPomodoro: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -69,12 +77,16 @@ struct TaskItem: Identifiable, Codable, Equatable, Sendable {
         self.subtasks = subtasks
         self.isTheOne = isTheOne
         self.habitID = habitID
+        self.focusSessions = focusSessions
+        self.timerStartedAt = timerStartedAt
+        self.timerIsPomodoro = timerIsPomodoro
     }
 
     enum CodingKeys: String, CodingKey {
         case id, title, status, scheduledDate, createdAt, updatedAt
         case sourceTaskID, deferredToTaskID, deferredAt, sortOrder
         case tags, note, subtasks, isTheOne, habitID
+        case focusSessions, timerStartedAt, timerIsPomodoro
     }
 
     init(from decoder: Decoder) throws {
@@ -95,6 +107,18 @@ struct TaskItem: Identifiable, Codable, Equatable, Sendable {
         self.subtasks = try container.decodeIfPresent([SubTask].self, forKey: .subtasks) ?? []
         self.isTheOne = try container.decodeIfPresent(Bool.self, forKey: .isTheOne) ?? false
         self.habitID = try container.decodeIfPresent(UUID.self, forKey: .habitID)
+        self.focusSessions = try container.decodeIfPresent([FocusSession].self, forKey: .focusSessions) ?? []
+        self.timerStartedAt = try container.decodeIfPresent(Date.self, forKey: .timerStartedAt)
+        self.timerIsPomodoro = try container.decodeIfPresent(Bool.self, forKey: .timerIsPomodoro) ?? false
+    }
+
+    var isTimerRunning: Bool { timerStartedAt != nil }
+
+    /// Focused time on this goal, including the stretch that is still running.
+    func timeSpent(at now: Date) -> TimeInterval {
+        let banked = focusSessions.reduce(0) { $0 + $1.seconds }
+        let running = timerStartedAt.map { max(0, now.timeIntervalSince($0)) } ?? 0
+        return banked + running
     }
 
     var subtaskProgress: (done: Int, total: Int) {

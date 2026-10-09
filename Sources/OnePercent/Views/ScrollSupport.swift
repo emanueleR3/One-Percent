@@ -5,6 +5,8 @@ import AppKit
 /// on whichever edge still has content beyond it, and a slim thumb parked in the card gutter.
 struct FadingScrollView<Content: View>: View {
     var fadeHeight: CGFloat = 16
+    /// Whenever this value changes the list jumps back to the top (the panel opening, another day).
+    var resetToken: AnyHashable? = nil
     @ViewBuilder var content: () -> Content
 
     @State private var viewportHeight: CGFloat = 0
@@ -17,7 +19,7 @@ struct FadingScrollView<Content: View>: View {
         ScrollView(.vertical, showsIndicators: false) {
             content()
                 .background(
-                    ScrollMetricsReader { offset, content, viewport in
+                    ScrollMetricsReader(resetToken: resetToken) { offset, content, viewport in
                         scrollOffset = offset
                         contentHeight = content
                         viewportHeight = viewport
@@ -88,22 +90,29 @@ struct FadingScrollView<Content: View>: View {
 /// Reports scroll offset / content height / viewport height of the enclosing `NSScrollView`.
 /// SwiftUI on macOS 14 has no scroll-geometry API, so this observes the clip view directly.
 struct ScrollMetricsReader: NSViewRepresentable {
+    var resetToken: AnyHashable? = nil
     var onChange: (_ offset: CGFloat, _ contentHeight: CGFloat, _ viewportHeight: CGFloat) -> Void
 
     func makeNSView(context: Context) -> ScrollMetricsProbeView {
         let view = ScrollMetricsProbeView()
         view.onChange = onChange
+        view.lastResetToken = resetToken
         return view
     }
 
     func updateNSView(_ nsView: ScrollMetricsProbeView, context: Context) {
         nsView.onChange = onChange
+        if nsView.lastResetToken != resetToken {
+            nsView.lastResetToken = resetToken
+            nsView.scrollToTop()
+        }
         nsView.report()
     }
 }
 
 final class ScrollMetricsProbeView: NSView {
     var onChange: ((CGFloat, CGFloat, CGFloat) -> Void)?
+    var lastResetToken: AnyHashable?
     private var observers: [NSObjectProtocol] = []
     private var lastReport: (CGFloat, CGFloat, CGFloat) = (-1, -1, -1)
 
@@ -146,6 +155,13 @@ final class ScrollMetricsProbeView: NSView {
             )
         }
         report()
+    }
+
+    func scrollToTop() {
+        guard let scrollView = enclosingScrollView, let documentView = scrollView.documentView else { return }
+        let top = documentView.isFlipped ? 0 : max(0, documentView.frame.height - scrollView.contentView.bounds.height)
+        scrollView.contentView.scroll(to: NSPoint(x: 0, y: top))
+        scrollView.reflectScrolledClipView(scrollView.contentView)
     }
 
     func report() {

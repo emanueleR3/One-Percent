@@ -48,6 +48,7 @@ final class TaskStore: ObservableObject {
         self.habitPersistence = habitPersistence ?? (persistence == nil ? HabitPersistenceController() : InMemoryHabitPersistence())
 
         loadAllTasks()
+        recoverInterruptedTimers()
         loadHabits()
         ensureHabitOccurrences()
 
@@ -66,7 +67,7 @@ final class TaskStore: ObservableObject {
             self.allTasks = try persistence.loadTasks()
             self.lastErrorMessage = nil
         } catch {
-            self.lastErrorMessage = "Failed to load tasks: \(error.localizedDescription)"
+            self.lastErrorMessage = L("Failed to load tasks: %@", error.localizedDescription)
         }
     }
 
@@ -75,7 +76,7 @@ final class TaskStore: ObservableObject {
             try persistence.saveTasks(allTasks)
             self.lastErrorMessage = nil
         } catch {
-            self.lastErrorMessage = "Failed to save tasks: \(error.localizedDescription)"
+            self.lastErrorMessage = L("Failed to save tasks: %@", error.localizedDescription)
         }
     }
 
@@ -176,6 +177,11 @@ final class TaskStore: ObservableObject {
         }
 
         let wasInProgress = (existing.status == .inProgress)
+
+        // Leaving "in progress" (done, back to to do, tomorrow) stops the clock and keeps the time.
+        if existing.timerStartedAt != nil, newStatus != .inProgress {
+            bankTimer(at: index, now: Date())
+        }
 
         if newStatus == .deferred {
             deferTask(id: id)
@@ -832,7 +838,7 @@ final class TaskStore: ObservableObject {
         do {
             habits = try habitPersistence.loadHabits()
         } catch {
-            lastErrorMessage = "Failed to load habits: \(error.localizedDescription)"
+            lastErrorMessage = L("Failed to load habits: %@", error.localizedDescription)
         }
     }
 
@@ -840,7 +846,7 @@ final class TaskStore: ObservableObject {
         do {
             try habitPersistence.saveHabits(habits)
         } catch {
-            lastErrorMessage = "Failed to save habits: \(error.localizedDescription)"
+            lastErrorMessage = L("Failed to save habits: %@", error.localizedDescription)
         }
     }
 
@@ -882,6 +888,95 @@ final class TaskStore: ObservableObject {
             streak: summary.currentStreak,
             isStreakCountedToday: summary.isTodayCounted
         )
+    }
+
+    // MARK: - Focus timer
+
+    var runningTimerTaskID: UUID? {
+        allTasks.first { $0.timerStartedAt != nil }?.id
+    }
+
+    /// Starts the clock on a goal. Only one runs at a time: any other is stopped and keeps its time.
+    /// A goal that was still "to do" becomes "in progress".
+    @discardableResult
+    func startTimer(id: UUID, isPomodoro: Bool = false, at now: Date = Date()) -> Bool {
+        guard let index = allTasks.firstIndex(where: { $0.id == id }) else { return false }
+        let status = allTasks[index].status
+        guard status == .todo || status == .inProgress else { return false }
+        if allTasks[index].timerStartedAt != nil { return true }
+
+        for other in allTasks.indices where other != index && allTasks[other].timerStartedAt != nil {
+            bankTimer(at: other, now: now)
+        }
+        if status == .todo {
+            updateTaskStatus(id: id, newStatus: .inProgress)
+        }
+        guard let started = allTasks.firstIndex(where: { $0.id == id }) else { return false }
+        allTasks[started].timerStartedAt = now
+        allTasks[started].timerIsPomodoro = isPomodoro
+        allTasks[started].updatedAt = now
+        persist()
+        return true
+    }
+
+    func pauseTimer(id: UUID, at now: Date = Date()) {
+        guard let index = allTasks.firstIndex(where: { $0.id == id }), allTasks[index].timerStartedAt != nil else { return }
+        bankTimer(at: index, now: now)
+        persist()
+    }
+
+    func pauseRunningTimer(at now: Date = Date()) {
+        if let id = runningTimerTaskID { pauseTimer(id: id, at: now) }
+    }
+
+    /// Called while a timer runs so a crash or force quit loses at most the last half minute:
+    /// on relaunch the time is credited up to this checkpoint (`updatedAt`).
+    func timerHeartbeat(at now: Date = Date()) {
+        guard let index = allTasks.firstIndex(where: { $0.timerStartedAt != nil }) else { return }
+        allTasks[index].updatedAt = now
+        persist()
+    }
+
+    func resetFocusTime(id: UUID) {
+        guard let index = allTasks.firstIndex(where: { $0.id == id }) else { return }
+        allTasks[index].focusSessions = []
+        allTasks[index].timerStartedAt = nil
+        allTasks[index].timerIsPomodoro = false
+        allTasks[index].updatedAt = Date()
+        persist()
+    }
+
+    /// Moves the running stretch into `focusSessions`. Stretches under a second are noise.
+    private func bankTimer(at index: Int, now: Date) {
+        guard let started = allTasks[index].timerStartedAt else { return }
+        let seconds = now.timeIntervalSince(started)
+        if seconds >= 1 {
+            allTasks[index].focusSessions.append(
+                FocusSession(start: started, seconds: seconds, isPomodoro: allTasks[index].timerIsPomodoro)
+            )
+        }
+        allTasks[index].timerStartedAt = nil
+        allTasks[index].timerIsPomodoro = false
+        allTasks[index].updatedAt = now
+    }
+
+    /// A timer still marked as running at launch means the app stopped without pausing it. Credit
+    /// the time up to the last save and stop it rather than counting the hours the app was off.
+    private func recoverInterruptedTimers() {
+        var changed = false
+        for index in allTasks.indices {
+            guard let started = allTasks[index].timerStartedAt else { continue }
+            let seconds = allTasks[index].updatedAt.timeIntervalSince(started)
+            if seconds >= 1 {
+                allTasks[index].focusSessions.append(
+                    FocusSession(start: started, seconds: seconds, isPomodoro: allTasks[index].timerIsPomodoro)
+                )
+            }
+            allTasks[index].timerStartedAt = nil
+            allTasks[index].timerIsPomodoro = false
+            changed = true
+        }
+        if changed { persist() }
     }
 
     // MARK: - Date Navigation

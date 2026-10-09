@@ -2,62 +2,89 @@ import SwiftUI
 
 /// Second page of the panel: streak, completion rates, 12-week heatmap and the 1% score.
 struct StatsView: View {
+    enum Tab: Hashable {
+        case overview
+        case focus
+    }
+
     @ObservedObject var store: TaskStore
     var onSelectDay: (Date) -> Void
+
+    @State private var tab: Tab = .overview
 
     var body: some View {
         let summary = store.tracking
 
         VStack(alignment: .leading, spacing: 10) {
-            StatTilesRow(summary: summary)
+            switch tab {
+            case .overview:
+                StatTilesRow(summary: summary)
 
-            HStack(alignment: .top, spacing: 12) {
-                HeatmapView(
-                    summary: summary,
-                    calendar: store.dateService.currentCalendar,
-                    today: store.dateService.today,
-                    canOpen: { store.dateService.daysFromToday(to: $0) >= -7 && store.dateService.daysFromToday(to: $0) <= 7 },
-                    onSelect: onSelectDay
-                )
+                HStack(alignment: .top, spacing: 12) {
+                    HeatmapView(
+                        summary: summary,
+                        calendar: store.dateService.currentCalendar,
+                        today: store.dateService.today,
+                        canOpen: { store.dateService.daysFromToday(to: $0) >= -7 && store.dateService.daysFromToday(to: $0) <= 7 },
+                        onSelect: onSelectDay
+                    )
 
-                ScoreCardView(score: summary.score, curve: summary.scoreCurve, perfectDays: summary.perfectDays)
+                    ScoreCardView(score: summary.score, curve: summary.scoreCurve, perfectDays: summary.perfectDays)
+                }
+                .frame(height: 112)
+            case .focus:
+                FocusStatsView(store: store)
             }
-            .frame(height: 112)
 
             footer(summary)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        .animation(IslandAnimations.hoverFade, value: tab)
     }
 
     private func footer(_ summary: TrackingSummary) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: "calendar")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(IslandPalette.tertiaryText)
+            if tab == .overview {
+                Image(systemName: "calendar")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(IslandPalette.tertiaryText)
 
-            Text(bestDayText(summary))
-                .font(IslandTypography.secondaryMetadata)
-                .foregroundStyle(IslandPalette.secondaryText)
+                Text(bestDayText(summary))
+                    .font(IslandTypography.secondaryMetadata)
+                    .foregroundStyle(IslandPalette.secondaryText)
+                    .lineLimit(1)
+            } else {
+                Image(systemName: "timer")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(IslandPalette.tertiaryText)
+
+                Text(L("Time is kept when you pause or finish"))
+                    .font(IslandTypography.secondaryMetadata)
+                    .foregroundStyle(IslandPalette.secondaryText)
+                    .lineLimit(1)
+            }
 
             Spacer(minLength: 8)
 
-            Text("Tap a day to open it")
-                .font(IslandTypography.statCaption)
-                .foregroundStyle(IslandPalette.tertiaryText)
+            OptionChips(
+                options: [.init(label: L("Overview"), value: Tab.overview), .init(label: L("Focus"), value: Tab.focus)],
+                selection: $tab,
+                accessibility: L("Stats page")
+            )
         }
+        .frame(height: 24)
         .padding(.horizontal, 2)
-        .accessibilityElement(children: .combine)
     }
 
     private func bestDayText(_ summary: TrackingSummary) -> String {
         guard let best = summary.bestWeekday else {
-            return "Best weekday shows up after two of each"
+            return L("Best weekday shows up after two of each")
         }
         let calendar = store.dateService.currentCalendar
         let symbols = calendar.weekdaySymbols
         let index = best.weekday - 1
         let name = symbols.indices.contains(index) ? symbols[index].localizedCapitalized : "—"
-        return "Best day: \(name) · \(Int((best.averageRatio * 100).rounded()))% done"
+        return L("Best day: %@ · %d%% done", name, Int((best.averageRatio * 100).rounded()))
     }
 }
 
@@ -69,38 +96,38 @@ private struct StatTilesRow: View {
     var body: some View {
         HStack(spacing: 0) {
             StatTile(
-                title: "Streak",
+                title: L("Streak"),
                 value: Double(summary.currentStreak),
                 format: { "\(Int($0.rounded()))" },
-                unit: summary.currentStreak == 1 ? "day" : "days",
-                caption: "best \(summary.bestStreak)",
+                unit: summary.currentStreak == 1 ? L("day") : L("days"),
+                caption: L("best %d", summary.bestStreak),
                 tint: summary.isTodayCounted && summary.currentStreak > 0 ? IslandPalette.streakAccent : IslandPalette.primaryText
             )
             divider
             StatTile(
-                title: "7 days",
+                title: L("7 days"),
                 value: (summary.rate7 ?? 0) * 100,
                 format: { "\(Int($0.rounded()))" },
                 unit: "%",
-                caption: summary.rate7 == nil ? "no goals" : "goals done",
+                caption: summary.rate7 == nil ? L("no goals") : L("goals done"),
                 tint: IslandPalette.primaryText
             )
             divider
             StatTile(
-                title: "30 days",
+                title: L("30 days"),
                 value: (summary.rate30 ?? 0) * 100,
                 format: { "\(Int($0.rounded()))" },
                 unit: "%",
-                caption: summary.rate30 == nil ? "no goals" : "goals done",
+                caption: summary.rate30 == nil ? L("no goals") : L("goals done"),
                 tint: IslandPalette.primaryText
             )
             divider
             StatTile(
-                title: "Per day",
+                title: L("Per day"),
                 value: summary.averagePerDay,
                 format: { String(format: "%.1f", $0) },
                 unit: "",
-                caption: "goals done",
+                caption: L("goals done"),
                 tint: IslandPalette.primaryText
             )
         }
@@ -169,7 +196,7 @@ private struct HeatmapView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            EyebrowText("Last 12 weeks")
+            EyebrowText(L("Last 12 weeks"))
 
             HStack(alignment: .top, spacing: 5) {
                 weekdayLabels
@@ -217,7 +244,7 @@ private struct HeatmapView: View {
     @ViewBuilder
     private func cellView(_ day: DayStats?, column: Int, row: Int) -> some View {
         if let day {
-            HeatCell(day: day, isToday: calendar.isDate(day.date, inSameDayAs: today), size: cell, enabled: canOpen(day.date)) {
+            HeatCell(calendar: calendar, day: day, isToday: calendar.isDate(day.date, inSameDayAs: today), size: cell, enabled: canOpen(day.date)) {
                 onSelect(day.date)
             }
             .opacity(appeared ? 1 : 0)
@@ -233,6 +260,7 @@ private struct HeatmapView: View {
 }
 
 private struct HeatCell: View {
+    let calendar: Calendar
     let day: DayStats
     let isToday: Bool
     let size: CGFloat
@@ -241,11 +269,9 @@ private struct HeatCell: View {
 
     @State private var isHovered = false
 
-    private static let tooltipFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate("EEEMMMd")
-        return formatter
-    }()
+    private func tooltipDate(_ date: Date) -> String {
+        LocalizedDates.string(date, template: "EEEMMMd", calendar: calendar)
+    }
 
     var body: some View {
         Button(action: action) {
@@ -264,14 +290,14 @@ private struct HeatCell: View {
         .disabled(!enabled)
         .onHover { isHovered = $0 }
         .animation(IslandAnimations.hoverFade, value: isHovered)
-        .help("\(Self.tooltipFormatter.string(from: day.date)) · \(summary)")
-        .accessibilityLabel("\(Self.tooltipFormatter.string(from: day.date)), \(summary)")
+        .help("\(tooltipDate(day.date)) · \(summary)")
+        .accessibilityLabel("\(tooltipDate(day.date)), \(summary)")
     }
 
     private var summary: String {
-        if !day.hasGoals { return "no goals" }
-        if day.total == 0 { return "moved to tomorrow" }
-        return "\(day.completed) of \(day.total) done"
+        if !day.hasGoals { return L("no goals") }
+        if day.total == 0 { return L("moved to tomorrow") }
+        return L("%d of %d done", day.completed, day.total)
     }
 
     private var fill: Color {
@@ -298,9 +324,9 @@ private struct ScoreCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
-                EyebrowText("1% score")
+                EyebrowText(L("1% score"))
                 Spacer(minLength: 4)
-                Text(perfectDays == 1 ? "1 perfect day" : "\(perfectDays) perfect days")
+                Text(Lp("%d perfect day", "%d perfect days", perfectDays))
                     .font(IslandTypography.statCaption)
                     .foregroundStyle(IslandPalette.tertiaryText)
             }
@@ -338,9 +364,9 @@ private struct ScoreCardView: View {
                 withAnimation(.easeOut(duration: 0.9).delay(0.15)) { reveal = 1 }
             }
         }
-        .help("Every day you close at 100% multiplies your score by 1.01.")
+        .help(L("Every day you close at 100% multiplies your score by 1.01."))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("1 percent score \(String(format: "%.2f", score)) times, \(perfectDays) perfect days")
+        .accessibilityLabel(L("1 percent score %@ times, %d perfect days", String(format: "%.2f", score), perfectDays))
     }
 }
 

@@ -23,7 +23,7 @@ struct TimeStepperView: View {
         .opacity(isEnabled ? 1 : 0.55)
         .allowsHitTesting(isEnabled)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Time")
+        .accessibilityLabel(L("Time"))
         .accessibilityValue(ReminderPlanner.clockString(minutes: minutes))
         .accessibilityAdjustableAction { direction in
             switch direction {

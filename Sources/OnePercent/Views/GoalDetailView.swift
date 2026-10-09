@@ -4,6 +4,7 @@ import SwiftUI
 struct GoalDetailView: View {
     @ObservedObject var store: TaskStore
     @ObservedObject var preferences: AppPreferences
+    @ObservedObject var focusController: FocusController
     let taskID: UUID
     var onClose: () -> Void
 
@@ -45,6 +46,7 @@ struct GoalDetailView: View {
                     if let habit = store.habit(for: task.habitID) {
                         habitLine(habit)
                     }
+                    focusSection(for: task)
                     tagsSection(for: task)
                     stepsSection(for: task)
                     noteSection
@@ -73,10 +75,10 @@ struct GoalDetailView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(PressScaleButtonStyle(scale: 0.92))
-            .help("Back to goals (Esc)")
-            .accessibilityLabel("Back to goals")
+            .help(L("Back to goals (Esc)"))
+            .accessibilityLabel(L("Back to goals"))
 
-            TextField("Goal", text: $title)
+            TextField(L("Goal"), text: $title)
                 .textFieldStyle(.plain)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(IslandPalette.primaryText)
@@ -99,7 +101,7 @@ struct GoalDetailView: View {
             HStack(spacing: 4) {
                 Image(systemName: task.isTheOne ? "star.fill" : "star")
                     .font(.system(size: 10.5, weight: .semibold))
-                Text("The One")
+                Text(L("The One"))
                     .font(IslandTypography.chip)
             }
             .foregroundStyle(task.isTheOne ? IslandPalette.theOneAccent : IslandPalette.secondaryText)
@@ -114,8 +116,8 @@ struct GoalDetailView: View {
         .buttonStyle(PressScaleButtonStyle(scale: 0.94))
         .animation(IslandAnimations.hoverFade, value: task.isTheOne)
         .disabled(task.status == .deferred)
-        .help(task.isTheOne ? "Remove from The One" : "Make this The One: the single goal that matters most today")
-        .accessibilityLabel(task.isTheOne ? "Remove The One" : "Make this The One")
+        .help(task.isTheOne ? L("Remove from The One") : L("Make this The One: the single goal that matters most today"))
+        .accessibilityLabel(task.isTheOne ? L("Remove The One") : L("Make this The One"))
     }
 
     private func habitLine(_ habit: Habit) -> some View {
@@ -138,7 +140,7 @@ struct GoalDetailView: View {
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(IslandPalette.primaryText)
-                Text("best \(stats.bestStreak)")
+                Text(L("best %d", stats.bestStreak))
                     .font(IslandTypography.statCaption)
                     .foregroundStyle(IslandPalette.tertiaryText)
             }
@@ -158,13 +160,89 @@ struct GoalDetailView: View {
         .accessibilityElement(children: .contain)
     }
 
+    // MARK: - Focus
+
+    /// Time spent on this goal, with the same play / pause as the row.
+    private func focusSection(for task: TaskItem) -> some View {
+        let canTime = task.status == .todo || task.status == .inProgress
+        let running = task.isTimerRunning
+        let sessions = task.focusSessions.count + (running ? 1 : 0)
+
+        return VStack(alignment: .leading, spacing: 7) {
+            EyebrowText(L("Focus"))
+
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    TimelineView(.periodic(from: .now, by: running ? 1 : 3_600)) { context in
+                        Text(FocusFormat.clock(task.timeSpent(at: context.date)))
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(running ? IslandPalette.inProgressAccent : IslandPalette.primaryText)
+                    }
+                    Text(sessions == 0 ? L("Not timed yet") : L("%@ · %@ today", Lp("%d session", "%d sessions", sessions), FocusFormat.compact(timeToday(task))))
+                        .font(IslandTypography.statCaption)
+                        .foregroundStyle(IslandPalette.tertiaryText)
+                }
+
+                Spacer(minLength: 6)
+
+                if !task.focusSessions.isEmpty && !running {
+                    ResetTimeButton { store.resetFocusTime(id: task.id) }
+                }
+
+                if canTime {
+                    Button {
+                        focusController.toggle(taskID: task.id)
+                        IslandHaptics.tick()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: running ? "pause.fill" : "play.fill")
+                                .font(.system(size: 9, weight: .bold))
+                            Text(running ? L("Pause") : (task.focusSessions.isEmpty ? L("Start") : L("Resume")))
+                                .font(IslandTypography.statusLabel)
+                        }
+                        .foregroundStyle(running ? IslandPalette.inProgressAccent : IslandPalette.primaryText)
+                        .padding(.horizontal, 11)
+                        .frame(height: 28)
+                        .background(
+                            RoundedRectangle(cornerRadius: IslandMetrics.controlCornerRadius, style: .continuous)
+                                .fill(running ? IslandPalette.inProgressAccent.opacity(0.16) : IslandPalette.hoverFill)
+                        )
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PressScaleButtonStyle(scale: 0.95))
+                    .animation(IslandAnimations.hoverFade, value: running)
+                    .accessibilityLabel(running ? L("Pause timer") : L("Start timer"))
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(
+                RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
+                    .fill(IslandPalette.restFill)
+            )
+        }
+    }
+
+    private func timeToday(_ task: TaskItem) -> TimeInterval {
+        let calendar = store.dateService.currentCalendar
+        let now = Date()
+        var total = task.focusSessions
+            .filter { calendar.isDate($0.start, inSameDayAs: now) }
+            .reduce(0) { $0 + $1.seconds }
+        if let started = task.timerStartedAt, calendar.isDate(started, inSameDayAs: now) {
+            total += now.timeIntervalSince(started)
+        }
+        return total
+    }
+
     // MARK: - Tags
 
     private func tagsSection(for task: TaskItem) -> some View {
         let suggestions = store.allTagNames.filter { !task.tags.contains($0) }.prefix(3)
 
         return VStack(alignment: .leading, spacing: 7) {
-            EyebrowText("Tags")
+            EyebrowText(L("Tags"))
 
             FlowLayout(spacing: 6, lineSpacing: 6) {
                 ForEach(task.tags, id: \.self) { tag in
@@ -199,14 +277,14 @@ struct GoalDetailView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(PressScaleButtonStyle(scale: 0.94))
-                    .accessibilityLabel("Add tag \(tag)")
+                    .accessibilityLabel(L("Add tag %@", tag))
                 }
             }
         }
     }
 
     private func tagField(for task: TaskItem) -> some View {
-        TextField("", text: $newTag, prompt: Text("New tag").foregroundStyle(IslandPalette.tertiaryText))
+        TextField("", text: $newTag, prompt: Text(L("New tag")).foregroundStyle(IslandPalette.tertiaryText))
             .textFieldStyle(.plain)
             .font(.system(size: 10.5, weight: .medium))
             .foregroundStyle(IslandPalette.primaryText)
@@ -226,7 +304,7 @@ struct GoalDetailView: View {
                 focus = .tag
             }
             .pasteSupport(text: $newTag, isActive: focus == .tag)
-            .accessibilityLabel("New tag")
+            .accessibilityLabel(L("New tag"))
     }
 
     // MARK: - Steps
@@ -236,10 +314,10 @@ struct GoalDetailView: View {
 
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
-                EyebrowText("Steps")
+                EyebrowText(L("Steps"))
                 Spacer()
                 if progress.total > 0 {
-                    Text("\(progress.done) of \(progress.total)")
+                    Text(L("%d of %d", progress.done, progress.total))
                         .font(IslandTypography.statCaption)
                         .foregroundStyle(progress.done == progress.total ? IslandPalette.completedAccent : IslandPalette.tertiaryText)
                 }
@@ -270,7 +348,7 @@ struct GoalDetailView: View {
                     .foregroundStyle(focus == .step ? IslandPalette.completedAccent : IslandPalette.tertiaryText)
                     .frame(width: 16, height: 16)
 
-                TextField("", text: $newStep, prompt: Text("Add a step").foregroundStyle(IslandPalette.tertiaryText))
+                TextField("", text: $newStep, prompt: Text(L("Add a step")).foregroundStyle(IslandPalette.tertiaryText))
                     .textFieldStyle(.plain)
                     .font(IslandTypography.taskTitle)
                     .foregroundStyle(IslandPalette.primaryText)
@@ -283,7 +361,7 @@ struct GoalDetailView: View {
                         focus = .step
                     }
                     .pasteSupport(text: $newStep, isActive: focus == .step)
-                    .accessibilityLabel("New step")
+                    .accessibilityLabel(L("New step"))
             }
             .frame(height: 26)
         }
@@ -294,9 +372,9 @@ struct GoalDetailView: View {
 
     private var noteSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            EyebrowText("Note")
+            EyebrowText(L("Note"))
 
-            TextField("", text: $note, prompt: Text("Add a note").foregroundStyle(IslandPalette.tertiaryText), axis: .vertical)
+            TextField("", text: $note, prompt: Text(L("Add a note")).foregroundStyle(IslandPalette.tertiaryText), axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(IslandTypography.taskTitle)
                 .foregroundStyle(IslandPalette.primaryText)
@@ -316,7 +394,7 @@ struct GoalDetailView: View {
                 .animation(IslandAnimations.hoverFade, value: focus == .note)
                 .pasteSupport(text: $note, isActive: focus == .note)
                 .onChange(of: note) { _, _ in scheduleNoteSave() }
-                .accessibilityLabel("Note")
+                .accessibilityLabel(L("Note"))
         }
     }
 
@@ -331,7 +409,7 @@ struct GoalDetailView: View {
             HStack(spacing: 5) {
                 Image(systemName: "trash")
                     .font(.system(size: 10, weight: .semibold))
-                Text("Delete goal")
+                Text(L("Delete goal"))
                     .font(IslandTypography.statusLabel)
             }
             .foregroundStyle(IslandPalette.destructiveAccent.opacity(0.85))
@@ -344,7 +422,7 @@ struct GoalDetailView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PressScaleButtonStyle(scale: 0.96))
-        .accessibilityLabel("Delete goal")
+        .accessibilityLabel(L("Delete goal"))
     }
 
     // MARK: - Helpers
@@ -417,7 +495,7 @@ private struct SubtaskRow: View {
             }
             .buttonStyle(PressScaleButtonStyle(scale: 0.84))
             .animation(IslandAnimations.checkSpring, value: step.isDone)
-            .accessibilityLabel(step.isDone ? "Mark step as not done" : "Mark step as done")
+            .accessibilityLabel(step.isDone ? L("Mark step as not done") : L("Mark step as done"))
 
             TextField("", text: $text)
                 .textFieldStyle(.plain)
@@ -440,7 +518,7 @@ private struct SubtaskRow: View {
             }
             .buttonStyle(PressScaleButtonStyle(scale: 0.88))
             .opacity(isHovered ? 1 : 0)
-            .accessibilityLabel("Delete step")
+            .accessibilityLabel(L("Delete step"))
         }
         .frame(minHeight: 26)
         .onHover { isHovered = $0 }
@@ -455,5 +533,43 @@ private struct SubtaskRow: View {
         } else if trimmed != step.title {
             onRename(trimmed)
         }
+    }
+}
+
+/// Clears a goal's tracked time, but only on the second click.
+private struct ResetTimeButton: View {
+    var onConfirm: () -> Void
+
+    @State private var isArmed = false
+    @State private var token = 0
+
+    var body: some View {
+        Button {
+            if isArmed {
+                onConfirm()
+                isArmed = false
+            } else {
+                isArmed = true
+                token += 1
+                let current = token
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    if token == current { isArmed = false }
+                }
+            }
+        } label: {
+            Text(isArmed ? L("Clear time?") : L("Reset"))
+                .font(IslandTypography.statusLabel)
+                .foregroundStyle(isArmed ? IslandPalette.destructiveAccent : IslandPalette.tertiaryText)
+                .padding(.horizontal, 8)
+                .frame(height: 24)
+                .background(
+                    RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
+                        .fill(isArmed ? IslandPalette.destructiveAccent.opacity(0.14) : Color.clear)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScaleButtonStyle(scale: 0.94))
+        .animation(IslandAnimations.hoverFade, value: isArmed)
+        .accessibilityLabel(isArmed ? L("Confirm clearing tracked time") : L("Reset tracked time"))
     }
 }

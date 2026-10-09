@@ -40,7 +40,7 @@ struct StreakChipView: View {
         .animation(.snappy(duration: 0.35), value: streak)
         .animation(IslandAnimations.hoverFade, value: isLit)
         .help(helpText)
-        .accessibilityLabel("Streak: \(streak) \(streak == 1 ? "day" : "days"). Best: \(best). \(isTodayCounted ? "Today is counted." : "Complete a goal today to keep it.")")
+        .accessibilityLabel(L("Streak: %@. Best: %d. %@", Lp("%d day", "%d days", streak), best, isTodayCounted ? L("Today is counted.") : L("Complete a goal today to keep it.")))
     }
 
     private var flameColor: Color {
@@ -49,9 +49,9 @@ struct StreakChipView: View {
     }
 
     private var helpText: String {
-        let days = streak == 1 ? "1-day streak" : "\(streak)-day streak"
-        let record = best > 0 ? " · best \(best)" : ""
-        if streak == 0 { return "No streak yet. Complete a goal today to start one." }
-        return isTodayCounted ? "\(days)\(record)" : "\(days)\(record). Complete a goal today to keep it."
+        let days = L("%d-day streak", streak)
+        let record = best > 0 ? " · " + L("best %d", best) : ""
+        if streak == 0 { return L("No streak yet. Complete a goal today to start one.") }
+        return isTodayCounted ? days + record : days + record + ". " + L("Complete a goal today to keep it.")
     }
 }

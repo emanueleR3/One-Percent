@@ -98,6 +98,6 @@ struct IslandSwitch: View {
         .buttonStyle(PressScaleButtonStyle(scale: 0.94))
         .animation(.spring(response: 0.28, dampingFraction: 0.78), value: isOn)
         .accessibilityAddTraits(.isButton)
-        .accessibilityValue(isOn ? "On" : "Off")
+        .accessibilityValue(isOn ? L("On") : L("Off"))
     }
 }

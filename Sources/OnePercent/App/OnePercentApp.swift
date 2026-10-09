@@ -16,14 +16,19 @@ final class OnePercentApplication: NSObject {
         application.run()
     }
 
+    /// Rebuilds the app menu so its titles follow the language chosen in Settings.
+    static func rebuildApplicationMenu() {
+        configureApplicationMenu(for: NSApplication.shared)
+    }
+
     private static func configureApplicationMenu(for application: NSApplication) {
         let mainMenu = NSMenu()
 
         // 1. Application Menu ("One Percent")
         let applicationMenuItem = NSMenuItem()
-        let applicationMenu = NSMenu(title: "One Percent")
+        let applicationMenu = NSMenu(title: L("One Percent"))
         let aboutItem = NSMenuItem(
-            title: "About One Percent",
+            title: L("About One Percent"),
             action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
             keyEquivalent: ""
         )
@@ -32,7 +37,7 @@ final class OnePercentApplication: NSObject {
         applicationMenu.addItem(NSMenuItem.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit One Percent",
+            title: L("Quit One Percent"),
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )
@@ -44,17 +49,17 @@ final class OnePercentApplication: NSObject {
         // 2. Edit Menu ("Edit")
         // Required for macOS responder chain to route ⌘X (Cut), ⌘C (Copy), ⌘V (Paste), ⌘A (Select All), ⌘Z (Undo)
         let editMenuItem = NSMenuItem()
-        let editMenu = NSMenu(title: "Edit")
+        let editMenu = NSMenu(title: L("Edit"))
 
         let undoItem = NSMenuItem(
-            title: "Undo",
+            title: L("Undo"),
             action: Selector(("undo:")),
             keyEquivalent: "z"
         )
         editMenu.addItem(undoItem)
 
         let redoItem = NSMenuItem(
-            title: "Redo",
+            title: L("Redo"),
             action: Selector(("redo:")),
             keyEquivalent: "Z"
         )
@@ -63,28 +68,28 @@ final class OnePercentApplication: NSObject {
         editMenu.addItem(NSMenuItem.separator())
 
         let cutItem = NSMenuItem(
-            title: "Cut",
+            title: L("Cut"),
             action: #selector(NSText.cut(_:)),
             keyEquivalent: "x"
         )
         editMenu.addItem(cutItem)
 
         let copyItem = NSMenuItem(
-            title: "Copy",
+            title: L("Copy"),
             action: #selector(NSText.copy(_:)),
             keyEquivalent: "c"
         )
         editMenu.addItem(copyItem)
 
         let pasteItem = NSMenuItem(
-            title: "Paste",
+            title: L("Paste"),
             action: #selector(NSText.paste(_:)),
             keyEquivalent: "v"
         )
         editMenu.addItem(pasteItem)
 
         let selectAllItem = NSMenuItem(
-            title: "Select All",
+            title: L("Select All"),
             action: #selector(NSText.selectAll(_:)),
             keyEquivalent: "a"
         )

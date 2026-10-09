@@ -15,6 +15,7 @@ struct IslandView: View {
     @ObservedObject var store: TaskStore
     @ObservedObject var presentationState: IslandPresentationState
     @ObservedObject private var preferences: AppPreferences
+    @ObservedObject private var focus: FocusController
     private let services: IslandServices
     var onHeightChange: ((CGFloat) -> Void)? = nil
     var onInteractionChange: ((Bool) -> Void)? = nil
@@ -52,6 +53,7 @@ struct IslandView: View {
         self.store = store
         self.presentationState = presentationState
         self._preferences = ObservedObject(wrappedValue: services.preferences)
+        self._focus = ObservedObject(wrappedValue: services.focus)
         self.services = services
         self.onHeightChange = onHeightChange
         self.onInteractionChange = onInteractionChange
@@ -60,6 +62,8 @@ struct IslandView: View {
     var body: some View {
         ZStack(alignment: .top) {
             islandCard
+                // Texts are looked up when a view is built, so a language change rebuilds the card.
+                .id(preferences.language)
                 .frame(width: IslandMetrics.panelWidth, height: desiredPanelHeight)
                 // Fluid droplet bounce anchored at the camera notch.
                 // It expands with overshoot into the window's headroom without edge clipping.
@@ -145,7 +149,7 @@ struct IslandView: View {
                     )
                     .transition(pageTransition)
                 case .detail(let id):
-                    GoalDetailView(store: store, preferences: preferences, taskID: id) {
+                    GoalDetailView(store: store, preferences: preferences, focusController: focus, taskID: id) {
                         withAnimation(IslandAnimations.defaultSpring) { page = .goals }
                     }
                     .id(id)
@@ -180,6 +184,11 @@ struct IslandView: View {
             // Discrete error feedback if persistence encountered an error (Section 5.4)
             if let errorMessage = store.lastErrorMessage {
                 errorBanner(errorMessage)
+            }
+
+            if focus.isActive {
+                FocusStripView(focus: focus, store: store, preferences: preferences)
+                    .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
             }
 
             if let mode = wrapUpMode {
@@ -227,82 +236,10 @@ struct IslandView: View {
                 .frame(maxWidth: .infinity, minHeight: scrollListMaxHeight)
                 .transition(.opacity)
             } else if !store.selectedDateTasks.isEmpty {
-                FadingScrollView {
+                FadingScrollView(resetToken: AnyHashable(ListResetKey(isOpen: presentationState.isExpanded, day: store.selectedDate))) {
                     VStack(spacing: rowSpacing) {
                         ForEach(Array(store.selectedDateTasks.enumerated()), id: \.element.id) { index, task in
-                            let isBeingDragged = (draggedTaskID == task.id)
-                            let currentOffset = calculateRowOffset(for: task, index: index, isBeingDragged: isBeingDragged)
-
-                            TaskRowView(
-                                task: task,
-                                onUpdateStatus: { newStatus in
-                                    let before = store.currentProgress
-                                    store.updateTaskStatus(id: task.id, newStatus: newStatus)
-                                    let after = store.currentProgress
-                                    if before.ratio < 1, after.ratio >= 1, after.totalCount > 0 {
-                                        celebrate()
-                                    }
-                                },
-                                onUpdateTitle: { newTitle in
-                                    store.updateTaskTitle(id: task.id, newTitle: newTitle)
-                                },
-                                onDelete: {
-                                    withAnimation(IslandAnimations.statusTransition) {
-                                        store.deleteTask(id: task.id)
-                                    }
-                                },
-                                onDragStarted: {
-                                    draggedTaskID = task.id
-                                    draggedSourceIndex = index
-                                    targetIndex = index
-                                    dragOffset = 0
-                                    snapshotFrames = rowFrames
-                                    snapshotTasks = store.selectedDateTasks
-                                    onInteractionChange?(true)
-                                },
-                                onDragChanged: { translation in
-                                    dragOffset = translation
-                                    updateTargetIndex(translation: translation)
-                                },
-                                onDragEnded: {
-                                    commitReorder()
-                                },
-                                onEditingChanged: { isEditing in
-                                    onInteractionChange?(isEditing || needsKeyboard)
-                                },
-                                isLifted: isBeingDragged,
-                                accessories: accessories(for: task),
-                                onOpenDetails: {
-                                    withAnimation(IslandAnimations.defaultSpring) {
-                                        page = .detail(task.id)
-                                    }
-                                },
-                                onToggleTheOne: {
-                                    withAnimation(IslandAnimations.defaultSpring) {
-                                        store.toggleTheOne(id: task.id)
-                                    }
-                                    IslandHaptics.tick()
-                                }
-                            )
-                            .matchedGeometryEffect(id: task.id, in: taskListNamespace)
-                            .background(
-                                GeometryReader { geo in
-                                    Color.clear.preference(
-                                        key: TaskRowFramePreferenceKey.self,
-                                        value: [task.id: geo.frame(in: .named("TaskList"))]
-                                    )
-                                }
-                            )
-                            .offset(y: currentOffset)
-                            .zIndex(isBeingDragged ? 100 : (store.autoSlidingTaskID == task.id ? 20 : 1))
-                            .scaleEffect(isBeingDragged ? 1.015 : (store.autoSlidingTaskID == task.id ? 1.01 : 1.0))
-                            .shadow(
-                                color: isBeingDragged ? Color.black.opacity(0.45) : (store.autoSlidingTaskID == task.id ? Color.black.opacity(0.25) : Color.clear),
-                                radius: isBeingDragged ? 10 : (store.autoSlidingTaskID == task.id ? 4 : 0),
-                                x: 0,
-                                y: isBeingDragged ? 4 : (store.autoSlidingTaskID == task.id ? 1 : 0)
-                            )
-                            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: targetIndex)
+                            taskRow(task, index: index)
                         }
                     }
                     .padding(.vertical, 1)
@@ -318,7 +255,90 @@ struct IslandView: View {
             }
         }
         .animation(IslandAnimations.defaultSpring, value: wrapUpMode)
+        .animation(IslandAnimations.defaultSpring, value: focus.isActive)
         .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    /// One goal row with its drag, reorder and animation plumbing.
+    @ViewBuilder
+    private func taskRow(_ task: TaskItem, index: Int) -> some View {
+        let isBeingDragged = (draggedTaskID == task.id)
+        let currentOffset = calculateRowOffset(for: task, index: index, isBeingDragged: isBeingDragged)
+
+        TaskRowView(
+            task: task,
+            onUpdateStatus: { newStatus in
+                let before = store.currentProgress
+                store.updateTaskStatus(id: task.id, newStatus: newStatus)
+                let after = store.currentProgress
+                if before.ratio < 1, after.ratio >= 1, after.totalCount > 0 {
+                    celebrate()
+                }
+            },
+            onUpdateTitle: { newTitle in
+                store.updateTaskTitle(id: task.id, newTitle: newTitle)
+            },
+            onDelete: {
+                withAnimation(IslandAnimations.statusTransition) {
+                    store.deleteTask(id: task.id)
+                }
+            },
+            onDragStarted: {
+                draggedTaskID = task.id
+                draggedSourceIndex = index
+                targetIndex = index
+                dragOffset = 0
+                snapshotFrames = rowFrames
+                snapshotTasks = store.selectedDateTasks
+                onInteractionChange?(true)
+            },
+            onDragChanged: { translation in
+                dragOffset = translation
+                updateTargetIndex(translation: translation)
+            },
+            onDragEnded: {
+                commitReorder()
+            },
+            onEditingChanged: { isEditing in
+                onInteractionChange?(isEditing || needsKeyboard)
+            },
+            isLifted: isBeingDragged,
+            accessories: accessories(for: task),
+            onOpenDetails: {
+                withAnimation(IslandAnimations.defaultSpring) {
+                    page = .detail(task.id)
+                }
+            },
+            onToggleTheOne: {
+                withAnimation(IslandAnimations.defaultSpring) {
+                    store.toggleTheOne(id: task.id)
+                }
+                IslandHaptics.tick()
+            },
+            onToggleTimer: {
+                focus.toggle(taskID: task.id)
+                IslandHaptics.tick()
+            }
+        )
+        .matchedGeometryEffect(id: task.id, in: taskListNamespace)
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: TaskRowFramePreferenceKey.self,
+                    value: [task.id: geo.frame(in: .named("TaskList"))]
+                )
+            }
+        )
+        .offset(y: currentOffset)
+        .zIndex(isBeingDragged ? 100 : (store.autoSlidingTaskID == task.id ? 20 : 1))
+        .scaleEffect(isBeingDragged ? 1.015 : (store.autoSlidingTaskID == task.id ? 1.01 : 1.0))
+        .shadow(
+            color: isBeingDragged ? Color.black.opacity(0.45) : (store.autoSlidingTaskID == task.id ? Color.black.opacity(0.25) : Color.clear),
+            radius: isBeingDragged ? 10 : (store.autoSlidingTaskID == task.id ? 4 : 0),
+            x: 0,
+            y: isBeingDragged ? 4 : (store.autoSlidingTaskID == task.id ? 1 : 0)
+        )
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: targetIndex)
     }
 
     private func errorBanner(_ errorMessage: String) -> some View {
@@ -335,7 +355,7 @@ struct IslandView: View {
 
             Spacer(minLength: 4)
 
-            Button("Retry") {
+            Button(L("Retry")) {
                 store.retrySave()
             }
             .buttonStyle(.plain)
@@ -615,4 +635,10 @@ private struct TaskRowFramePreferenceKey: PreferenceKey {
     static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
         value.merge(nextValue()) { _, new in new }
     }
+}
+
+/// Changes when the list should start from its first row again.
+private struct ListResetKey: Hashable {
+    let isOpen: Bool
+    let day: Date
 }

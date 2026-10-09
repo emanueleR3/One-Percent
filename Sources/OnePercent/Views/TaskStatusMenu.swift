@@ -3,8 +3,10 @@ import SwiftUI
 /// Status menu control presenting the 4 defined task statuses per ONE_PERCENT_SPEC.md (Section 11.4)
 struct TaskStatusMenu<LabelContent: View>: View {
     let currentStatus: TaskStatus
+    var isTimerRunning: Bool = false
     let onSelectStatus: (TaskStatus) -> Void
     var onOpenDetails: (() -> Void)? = nil
+    var onToggleTimer: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
     @ViewBuilder let label: () -> LabelContent
 
@@ -15,7 +17,17 @@ struct TaskStatusMenu<LabelContent: View>: View {
                     Button {
                         onOpenDetails()
                     } label: {
-                        Label("Details…", systemImage: "list.bullet.indent")
+                        Label(L("Details…"), systemImage: "list.bullet.indent")
+                    }
+                }
+            }
+
+            if let onToggleTimer, currentStatus == .todo || currentStatus == .inProgress {
+                Section {
+                    Button {
+                        onToggleTimer()
+                    } label: {
+                        Label(isTimerRunning ? L("Pause timer") : L("Start timer"), systemImage: isTimerRunning ? "pause.fill" : "play.fill")
                     }
                 }
             }
@@ -54,14 +66,15 @@ struct TaskStatusMenu<LabelContent: View>: View {
                     Button(role: .destructive) {
                         onDelete()
                     } label: {
-                        Label("Delete Goal", systemImage: "trash")
+                        Label(L("Delete Goal"), systemImage: "trash")
                     }
                 }
             }
         } label: {
             label()
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.button)
+        .buttonStyle(.plain)
         .menuIndicator(.hidden)
     }
 }

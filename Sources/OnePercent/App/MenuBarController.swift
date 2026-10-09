@@ -37,7 +37,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.removeAllItems()
 
         let toggleItem = NSMenuItem(
-            title: isPanelVisible ? "Hide One Percent" : "Show One Percent",
+            title: isPanelVisible ? L("Hide One Percent") : L("Show One Percent"),
             action: #selector(togglePanelAction),
             keyEquivalent: "o"
         )
@@ -47,7 +47,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
         let isHoverEnabled = preferences.openOnHover
         let hoverItem = NSMenuItem(
-            title: "Open on Hover",
+            title: L("Open on Hover"),
             action: #selector(toggleHoverAction),
             keyEquivalent: ""
         )
@@ -59,7 +59,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(NSMenuItem.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit One Percent",
+            title: L("Quit One Percent"),
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )
@@ -72,7 +72,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     func menuWillOpen(_ menu: NSMenu) {
-        toggleVisibilityMenuItem?.title = isPanelVisible ? "Hide One Percent" : "Show One Percent"
+        // Titles are rebuilt on every open so a language change shows up at once.
+        buildMenu()
+        toggleVisibilityMenuItem?.title = isPanelVisible ? L("Hide One Percent") : L("Show One Percent")
         hoverToggleMenuItem?.state = preferences.openOnHover ? .on : .off
     }
 

@@ -44,6 +44,13 @@ final class ReminderCoordinator: ObservableObject {
         observers.forEach { $0.0.removeObserver($0.1) }
     }
 
+    /// Notification action titles are registered once; re-register them in the new language and
+    /// rewrite the pending reminders' text.
+    func languageDidChange() {
+        scheduler.start()
+        scheduleRefresh()
+    }
+
     func start() {
         scheduler.start()
         scheduler.onMoveToTomorrow = { [weak self] in

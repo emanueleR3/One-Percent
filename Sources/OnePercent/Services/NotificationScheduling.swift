@@ -28,6 +28,8 @@ protocol NotificationScheduling: AnyObject {
     func requestAuthorization() async -> Bool
     func removePending(ids: [String])
     func schedule(_ request: ReminderRequest, calendar: Calendar) async
+    /// Posts a notification right away (a Pomodoro block just ended).
+    func deliver(id: String, title: String, body: String) async
 }
 
 /// Real implementation on top of the system notification center.
@@ -47,7 +49,7 @@ final class SystemNotificationCenter: NSObject, NotificationScheduling, UNUserNo
 
     func start() {
         center.delegate = self
-        let move = UNNotificationAction(identifier: Self.moveActionID, title: "Move to tomorrow", options: [])
+        let move = UNNotificationAction(identifier: Self.moveActionID, title: L("Move to tomorrow"), options: [])
         let category = UNNotificationCategory(
             identifier: Self.categoryID,
             actions: [move],
@@ -85,6 +87,15 @@ final class SystemNotificationCenter: NSObject, NotificationScheduling, UNUserNo
         let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: request.fireDate)
         let trigger = UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
         try? await center.add(UNNotificationRequest(identifier: request.id, content: content, trigger: trigger))
+    }
+
+    func deliver(id: String, title: String, body: String) async {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = nil
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        try? await center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
     // MARK: - UNUserNotificationCenterDelegate

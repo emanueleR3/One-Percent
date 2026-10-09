@@ -22,11 +22,11 @@ struct EmptyStateView: View {
             .accessibilityHidden(true)
 
             VStack(spacing: 2) {
-                Text("A fresh start.")
+                Text(L("A fresh start."))
                     .font(IslandTypography.sectionTitle)
                     .foregroundStyle(IslandPalette.primaryText)
 
-                Text("Add your first goal.")
+                Text(L("Add your first goal."))
                     .font(IslandTypography.secondaryMetadata)
                     .foregroundStyle(IslandPalette.tertiaryText)
             }
@@ -35,7 +35,7 @@ struct EmptyStateView: View {
                 onAddGoal()
             } label: {
                 HStack(spacing: 6) {
-                    Text("Add goal")
+                    Text(L("Add goal"))
                         .font(IslandTypography.statusLabel)
                         .foregroundStyle(IslandPalette.primaryText)
                     KeycapView(label: "⌘N")
@@ -52,8 +52,8 @@ struct EmptyStateView: View {
             .buttonStyle(PressScaleButtonStyle(scale: 0.96))
             .onHover { isButtonHovered = $0 }
             .animation(IslandAnimations.hoverFade, value: isButtonHovered)
-            .help("Add your first goal for this day")
-            .accessibilityLabel("Add your first goal")
+            .help(L("Add your first goal for this day"))
+            .accessibilityLabel(L("Add your first goal"))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.vertical, 6)

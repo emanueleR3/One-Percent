@@ -28,7 +28,7 @@ final class LaunchAtLoginController: ObservableObject {
             }
             errorMessage = nil
         } catch {
-            errorMessage = "Couldn't change login item: \(error.localizedDescription)"
+            errorMessage = L("Couldn't change login item: %@", error.localizedDescription)
         }
         refresh()
     }

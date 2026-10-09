@@ -20,5 +20,11 @@ if [ -f "$project_dir/Resources/AppIcon.png" ]; then
     cp "$project_dir/Resources/AppIcon.png" "$app_bundle/Contents/Resources/AppIcon.png"
 fi
 
+for lproj in "$project_dir"/Resources/*.lproj; do
+    [ -d "$lproj" ] || continue
+    rm -rf "$app_bundle/Contents/Resources/${lproj:t}"
+    cp -R "$lproj" "$app_bundle/Contents/Resources/${lproj:t}"
+done
+
 touch "$app_bundle"
 echo "Created $app_bundle"

@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import QuartzCore
 import SwiftUI
 
@@ -8,6 +9,10 @@ final class NotchWindowController {
     private let services: IslandServices
     private let positionResolver = NotchPositionResolver()
     private let hoverMonitor = HoverMonitor()
+    private let indicator: NotchIndicatorController
+    private var preferenceObserver: AnyCancellable?
+    private var interactionLock = InteractionLock()
+    private var menuObservers: [NSObjectProtocol] = []
     private var panel: NotchPanel?
     private var activationWindow: NSWindow?
     private var notificationTokens: [NSObjectProtocol] = []
@@ -28,6 +33,11 @@ final class NotchWindowController {
     init(taskStore: TaskStore, services: IslandServices) {
         self.taskStore = taskStore
         self.services = services
+        self.indicator = NotchIndicatorController(
+            store: taskStore,
+            focus: services.focus,
+            preferences: services.preferences
+        )
     }
 
     func start() {
@@ -39,11 +49,30 @@ final class NotchWindowController {
             self?.hidePanel()
         }
         installScreenObservers()
+        installMenuTracking()
+        applyHoverTiming()
         refreshGeometry()
         hoverMonitor.start()
+
+        // Display, position, indicator and hover timing all come from Settings: re-apply when any changes.
+        preferenceObserver = services.preferences.objectWillChange
+            .debounce(for: .milliseconds(60), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.applyHoverTiming()
+                self?.refreshGeometry()
+            }
+    }
+
+    private func applyHoverTiming() {
+        hoverMonitor.openDelay = services.preferences.openDelay
+        hoverMonitor.closeDelay = services.preferences.closeDelay
     }
 
     func stop() {
+        menuObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        menuObservers.removeAll()
+        preferenceObserver = nil
+        indicator.hide()
         hoverMonitor.stop()
         notificationTokens.forEach { NotificationCenter.default.removeObserver($0) }
         notificationTokens.removeAll()
@@ -53,10 +82,31 @@ final class NotchWindowController {
     }
 
     func setInteractionLocked(_ locked: Bool) {
+        interactionLock.keyboard = locked
         hoverMonitor.setInteractionLocked(locked)
         if locked {
             activateForInput()
         }
+    }
+
+    /// Menus (the status menu on a row, a right-click menu, the repeat picker) are separate windows
+    /// that often reach past the panel. While one is open the panel stays where it is.
+    private func installMenuTracking() {
+        let center = NotificationCenter.default
+        menuObservers.append(center.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.interactionLock.menuDidBeginTracking()
+                self.hoverMonitor.setHeldOpen(self.interactionLock.isMenuHolding)
+            }
+        })
+        menuObservers.append(center.addObserver(forName: NSMenu.didEndTrackingNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.interactionLock.menuDidEndTracking()
+                self.hoverMonitor.setHeldOpen(self.interactionLock.isMenuHolding)
+            }
+        })
     }
 
     func activateForInput() {
@@ -194,10 +244,14 @@ final class NotchWindowController {
     }
 
     private func refreshGeometry(animated: Bool = false) {
+        let preferences = services.preferences
         guard let panel, let geometry = positionResolver.resolve(
             panelHeight: currentPanelHeight,
-            panelWidth: IslandMetrics.panelWidth
+            panelWidth: IslandMetrics.panelWidth,
+            selection: preferences.screenSelection,
+            anchor: preferences.panelAnchor
         ) else {
+            indicator.update(geometry: nil)
             return
         }
 
@@ -211,13 +265,16 @@ final class NotchWindowController {
             panel.setFrame(geometry.expandedFrame, display: true)
         }
 
-        updateActivationWindow(for: geometry.activationRect)
+        // The ring beside the notch counts as part of the notch: pointing at it opens the panel too.
+        let indicatorZone = indicator.update(geometry: geometry)
+        let hotZone = indicatorZone.map { geometry.activationRect.union($0) } ?? geometry.activationRect
+        updateActivationWindow(for: hotZone)
 
         // The interactive rectangle covers the expanded panel PLUS the entire notch
         // all the way to the top of the screen, so moving to the top never closes the panel.
-        let screenTop = geometry.activationRect.maxY
-        let combinedMinX = min(geometry.expandedFrame.minX, geometry.activationRect.minX) - 4
-        let combinedMaxX = max(geometry.expandedFrame.maxX, geometry.activationRect.maxX) + 4
+        let screenTop = hotZone.maxY
+        let combinedMinX = min(geometry.expandedFrame.minX, hotZone.minX) - 4
+        let combinedMaxX = max(geometry.expandedFrame.maxX, hotZone.maxX) + 4
         let combinedMinY = geometry.expandedFrame.minY - 4
         let fullInteractiveRect = NSRect(
             x: combinedMinX,
@@ -227,7 +284,7 @@ final class NotchWindowController {
         )
 
         hoverMonitor.update(
-            activationRect: geometry.activationRect,
+            activationRect: hotZone,
             interactiveRect: fullInteractiveRect
         )
     }

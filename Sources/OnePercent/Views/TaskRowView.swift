@@ -16,9 +16,13 @@ struct TaskRowView: View {
     var accessories = TaskRowAccessories()
     var onOpenDetails: (() -> Void)? = nil
     var onToggleTheOne: (() -> Void)? = nil
+    /// Starts or pauses the focus timer on this goal.
+    var onToggleTimer: (() -> Void)? = nil
 
     @State private var isHovered = false
     @State private var isCheckHovered = false
+    @State private var isPillHovered = false
+    @State private var pulse = false
     @State private var isHandleHovered = false
     @State private var isDraggingHandle = false
     @State private var isEditing = false
@@ -32,31 +36,40 @@ struct TaskRowView: View {
             statusButton
             titleView
             accessoriesView
-            statusControl
+            trailingChip
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 3)
         .frame(minHeight: IslandMetrics.rowHeight)
         .background(rowBackground)
+        .overlay(alignment: .trailing) {
+            if showsHoverActions {
+                hoverActions
+                    .padding(.trailing, 4)
+                    .transition(.opacity)
+            }
+        }
         .animation(IslandAnimations.hoverFade, value: isHovered)
         .animation(IslandAnimations.hoverFade, value: isLifted)
         .onHover { hovering in
             isHovered = hovering
         }
         .contextMenu {
-            Button("To do") { onUpdateStatus(.todo) }
-            Button("In progress") { onUpdateStatus(.inProgress) }
-            Button("Done") { onUpdateStatus(.done) }
+            Button(L("To do")) { onUpdateStatus(.todo) }
+            Button(L("In progress")) { onUpdateStatus(.inProgress) }
+            Button(L("Done")) { onUpdateStatus(.done) }
             Divider()
-            Button("Tomorrow") { onUpdateStatus(.deferred) }
+            Button(L("Tomorrow")) { onUpdateStatus(.deferred) }
                 .disabled(task.status == .done)
             Divider()
-            Button(task.isTheOne ? "Remove The One" : "Make The One") { onToggleTheOne?() }
+            Button(task.isTimerRunning ? L("Pause timer") : L("Start timer")) { onToggleTimer?() }
+                .disabled(task.status == .done || task.status == .deferred)
+            Button(task.isTheOne ? L("Remove The One") : L("Make The One")) { onToggleTheOne?() }
                 .disabled(task.status == .deferred)
-            Button("Details…") { onOpenDetails?() }
+            Button(L("Details…")) { onOpenDetails?() }
             Divider()
             Button(role: .destructive) { onDelete() } label: {
-                Label("Delete Goal", systemImage: "trash")
+                Label(L("Delete Goal"), systemImage: "trash")
             }
         }
         .onDisappear {
@@ -138,16 +151,8 @@ struct TaskRowView: View {
                 }
         )
         .animation(IslandAnimations.hoverFade, value: gripOpacity)
-        .help("Drag to reorder goal")
-        .accessibilityLabel("Reorder \(task.title)")
-    }
-
-    /// Chips for active states are always on; the to do / done ellipsis only appears on hover.
-    private var showsStatusControl: Bool {
-        switch task.status {
-        case .inProgress, .deferred: return true
-        case .todo, .done: return isHovered
-        }
+        .help(L("Drag to reorder goal"))
+        .accessibilityLabel(L("Reorder %@", task.title))
     }
 
     private var gripOpacity: Double {
@@ -217,7 +222,7 @@ struct TaskRowView: View {
                     .onTapGesture(count: 2) {
                         startEditing()
                     }
-                    .help("Double click to edit title")
+                    .help(L("Double click to edit title"))
                     .accessibilityLabel(accessibilityDescription)
             }
         }
@@ -256,35 +261,46 @@ struct TaskRowView: View {
                         Image(systemName: "text.alignleft")
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundStyle(IslandPalette.tertiaryText)
-                            .help("Has a note")
+                            .help(L("Has a note"))
                     }
                     if task.isTheOne {
                         Image(systemName: "star.fill")
                             .font(.system(size: 9.5, weight: .semibold))
                             .foregroundStyle(IslandPalette.theOneAccent)
-                            .help("The One: the goal that matters most today")
+                            .help(L("The One: the goal that matters most today"))
                     }
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Open details")
-            .accessibilityLabel("Open details for \(task.title)")
+            .help(L("Open details"))
+            .accessibilityLabel(L("Open details for %@", task.title))
         }
     }
 
 
-    /// Trailing status control. Active states (in progress / tomorrow) keep a tinted chip so they
-    /// stay scannable; to do / done only reveal an ellipsis on hover.
-    private var statusControl: some View {
-        TaskStatusMenu(
-            currentStatus: task.status,
-            onSelectStatus: onUpdateStatus,
-            onOpenDetails: onOpenDetails,
-            onDelete: onDelete
-        ) {
-            switch task.status {
-            case .inProgress, .deferred:
+    // MARK: - Trailing controls
+
+    /// The time pill is part of the layout only for goals that are being timed (or in progress);
+    /// every other row keeps its full width and gets its actions as a hover overlay instead.
+    private var showsTimePill: Bool {
+        switch task.status {
+        case .inProgress: return true
+        case .todo: return task.isTimerRunning || task.timeSpent(at: Date()) >= 1
+        case .done, .deferred: return false
+        }
+    }
+
+    private var showsHoverActions: Bool {
+        isHovered && !showsTimePill && task.status != .deferred && !isEditing && !isDraggingHandle
+    }
+
+    @ViewBuilder
+    private var trailingChip: some View {
+        if showsTimePill {
+            timePill
+        } else if task.status == .deferred {
+            statusMenu {
                 Text(task.status.displayName)
                     .font(IslandTypography.chip)
                     .foregroundStyle(task.status.color)
@@ -294,24 +310,146 @@ struct TaskRowView: View {
                         RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
                             .fill(task.status.color.opacity(0.12))
                     )
-            case .todo, .done:
+            }
+            .help(L("Change status or defer to tomorrow"))
+        }
+    }
+
+    /// Time spent on the goal (or "In progress" before it has any). Pointing at the pill turns its
+    /// leading icon into play / pause, so the timer control lives inside the pill and costs no space.
+    private var timePill: some View {
+        let running = task.isTimerRunning
+        let tint = IslandPalette.inProgressAccent
+
+        return HStack(spacing: 0) {
+            Button {
+                onToggleTimer?()
+            } label: {
+                ZStack {
+                    if isPillHovered, onToggleTimer != nil {
+                        Image(systemName: running ? "pause.fill" : "play.fill")
+                            .font(.system(size: 8, weight: .bold))
+                    } else if running {
+                        Circle()
+                            .frame(width: 5, height: 5)
+                            .opacity(pulse ? 0.4 : 1)
+                    } else if task.timeSpent(at: Date()) >= 1 {
+                        Image(systemName: "clock")
+                            .font(.system(size: 8, weight: .bold))
+                    } else {
+                        Circle()
+                            .frame(width: 4, height: 4)
+                            .opacity(0.5)
+                    }
+                }
+                .foregroundStyle(tint)
+                .frame(width: 22, height: 20)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(onToggleTimer == nil)
+            .help(running ? L("Pause the timer") : L("Start the timer"))
+            .accessibilityLabel(running ? L("Pause timer for %@", task.title) : L("Start timer for %@", task.title))
+
+            statusMenu {
+                pillLabel(running: running)
+                    .font(IslandTypography.chip)
+                    .foregroundStyle(tint)
+                    .padding(.trailing, 7)
+                    .frame(height: 20)
+                    .contentShape(Rectangle())
+            }
+            .help(L("Change status or defer to tomorrow"))
+        }
+        .background(
+            RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
+                .fill(tint.opacity(running || isPillHovered ? 0.2 : 0.12))
+        )
+        .onHover { isPillHovered = $0 }
+        .animation(IslandAnimations.hoverFade, value: isPillHovered)
+        .animation(IslandAnimations.hoverFade, value: running)
+        .onAppear { startPulseIfNeeded() }
+        .onChange(of: running) { _, _ in startPulseIfNeeded() }
+    }
+
+    @ViewBuilder
+    private func pillLabel(running: Bool) -> some View {
+        if running {
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                Text(FocusFormat.clock(task.timeSpent(at: context.date)))
+                    .monospacedDigit()
+            }
+        } else if task.timeSpent(at: Date()) >= 1 {
+            Text(FocusFormat.clock(task.timeSpent(at: Date())))
+                .monospacedDigit()
+        } else {
+            Text(TaskStatus.inProgress.displayName)
+        }
+    }
+
+    private func startPulseIfNeeded() {
+        guard task.isTimerRunning else { pulse = false; return }
+        withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) { pulse = true }
+    }
+
+    /// Actions that appear over the right edge of the row on hover: start the timer, more options.
+    private var hoverActions: some View {
+        HStack(spacing: 2) {
+            if task.status == .todo, onToggleTimer != nil {
+                Button {
+                    onToggleTimer?()
+                } label: {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 8.5, weight: .bold))
+                        .foregroundStyle(IslandPalette.secondaryText)
+                        .frame(width: 22, height: 22)
+                        .background(Circle().fill(IslandPalette.hoverFill))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(PressScaleButtonStyle(scale: 0.86))
+                .help(L("Start the timer"))
+                .accessibilityLabel(L("Start timer for %@", task.title))
+            }
+
+            statusMenu {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(IslandPalette.secondaryText)
                     .frame(width: 26, height: 22)
-                    .background(
-                        RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
-                            .fill(isHovered ? IslandPalette.restFill : Color.clear)
-                    )
+                    .contentShape(Rectangle())
             }
+            .help(L("Change status or defer to tomorrow"))
         }
+        .padding(.leading, 26)
+        .background(
+            // Fades whatever is underneath so the buttons never sit on top of text.
+            LinearGradient(
+                stops: [
+                    .init(color: Self.scrimColor.opacity(0), location: 0),
+                    .init(color: Self.scrimColor, location: 0.4),
+                    .init(color: Self.scrimColor, location: 1)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+    }
+
+    /// The row's hover wash over the panel, flattened to one opaque color.
+    private static let scrimColor = Color(red: 0.085, green: 0.085, blue: 0.09)
+
+    private func statusMenu<Label: View>(@ViewBuilder label: @escaping () -> Label) -> some View {
+        TaskStatusMenu(
+            currentStatus: task.status,
+            isTimerRunning: task.isTimerRunning,
+            onSelectStatus: onUpdateStatus,
+            onOpenDetails: onOpenDetails,
+            onToggleTimer: onToggleTimer,
+            onDelete: onDelete,
+            label: label
+        )
         .fixedSize()
-        // Applied outside the Menu: its AppKit-backed label ignores opacity set on the label itself.
-        .opacity(showsStatusControl ? 1 : 0)
-        .allowsHitTesting(showsStatusControl)
-        .animation(IslandAnimations.hoverFade, value: showsStatusControl)
-        .help("Change status or defer to tomorrow")
-        .accessibilityLabel("Change status for \(task.title). Current: \(task.status.displayName)")
+        .accessibilityLabel(L("Change status for %@. Current: %@", task.title, task.status.displayName))
     }
 
     private func startEditing() {
@@ -387,27 +525,27 @@ struct TaskRowView: View {
     private var quickStatusAccessibilityLabel: String {
         switch task.status {
         case .done:
-            return "Mark \(task.title) as to do"
+            return L("Mark %@ as to do", task.title)
         case .todo, .inProgress:
-            return "Mark \(task.title) as completed"
+            return L("Mark %@ as completed", task.title)
         case .deferred:
-            return "Reactivate \(task.title) for today"
+            return L("Reactivate %@ for today", task.title)
         }
     }
 
     private var quickStatusTooltip: String {
         switch task.status {
         case .done:
-            return "Mark as To do"
+            return L("Mark as To do")
         case .todo, .inProgress:
-            return "Mark as Done"
+            return L("Mark as Done")
         case .deferred:
-            return "Deferred to tomorrow"
+            return L("Deferred to tomorrow")
         }
     }
 
     private var accessibilityDescription: String {
-        "\(task.title), status: \(task.status.displayName)"
+        L("%@, status: %@", task.title, task.status.displayName)
     }
 }
 
@@ -499,8 +637,8 @@ private struct MovedBadgeView: View {
                 .fill(tint.opacity(0.13))
         )
         .fixedSize()
-        .help("Moved to tomorrow \(count) times")
-        .accessibilityLabel("Moved to tomorrow \(count) times")
+        .help(L("Moved to tomorrow %d times", count))
+        .accessibilityLabel(L("Moved to tomorrow %d times", count))
     }
 }
 
@@ -526,7 +664,7 @@ private struct HabitChip: View {
             }
         }
         .foregroundStyle(streak > 0 ? IslandPalette.streakAccent : IslandPalette.tertiaryText)
-        .help(streak > 0 ? "Habit · \(streak)-day streak" : "Habit")
+        .help(streak > 0 ? L("Habit · %d-day streak", streak) : L("Habit"))
     }
 }
 
@@ -562,6 +700,6 @@ private struct StepsChip: View {
                 .monospacedDigit()
         }
         .foregroundStyle(progress.done == progress.total ? IslandPalette.completedAccent : IslandPalette.tertiaryText)
-        .help("\(progress.done) of \(progress.total) steps done")
+        .help(L("%d of %d steps done", progress.done, progress.total))
     }
 }

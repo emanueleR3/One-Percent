@@ -24,8 +24,8 @@ struct IslandHeaderView: View {
             HeaderIconButton(
                 systemName: "chart.bar.xaxis",
                 isActive: page == .stats,
-                help: page == .stats ? "Back to goals" : "Stats",
-                accessibility: page == .stats ? "Back to goals" : "Show stats"
+                help: page == .stats ? L("Back to goals") : L("Stats"),
+                accessibility: page == .stats ? L("Back to goals") : L("Show stats")
             ) {
                 toggle(.stats)
             }
@@ -33,8 +33,8 @@ struct IslandHeaderView: View {
             HeaderIconButton(
                 systemName: "gearshape",
                 isActive: page == .settings,
-                help: page == .settings ? "Back to goals" : "Settings",
-                accessibility: page == .settings ? "Back to goals" : "Show settings"
+                help: page == .settings ? L("Back to goals") : L("Settings"),
+                accessibility: page == .settings ? L("Back to goals") : L("Show settings")
             ) {
                 toggle(.settings)
             }
@@ -58,8 +58,8 @@ struct IslandHeaderView: View {
             systemName: "plus",
             isActive: isOpen,
             rotation: isOpen ? 45 : 0,
-            help: isOpen ? "Close goal input (Esc)" : "Add new goal (⌘N)",
-            accessibility: isOpen ? "Close goal input" : "Add new goal"
+            help: isOpen ? L("Close goal input (Esc)") : L("Add new goal (⌘N)"),
+            accessibility: isOpen ? L("Close goal input") : L("Add new goal")
         ) {
             withAnimation(IslandAnimations.defaultSpring) {
                 if page != .goals {

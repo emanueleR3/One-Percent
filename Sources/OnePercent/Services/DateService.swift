@@ -10,6 +10,11 @@ final class DateService: ObservableObject {
 
     var onDayChanged: ((Date) -> Void)?
 
+    /// Weekday and month names follow the language chosen in Settings, not the macOS one.
+    func setLocale(_ locale: Locale) {
+        calendar.locale = locale
+    }
+
     /// Calendar used for every day computation, exposed for aggregations such as `TrackingCalculator`.
     var currentCalendar: Calendar { calendar }
 
@@ -93,34 +98,22 @@ final class DateService: ObservableObject {
     func formatDayTitle(for date: Date) -> String {
         let normalized = normalize(date)
         if isToday(normalized) {
-            let formatter = DateFormatter()
-            formatter.calendar = calendar
-            formatter.dateFormat = "MMM d"
-            return "Today, \(formatter.string(from: normalized))"
+            return L("Today, %@", LocalizedDates.string(normalized, template: "MMMd", calendar: calendar))
         } else if isTomorrow(normalized) {
-            let formatter = DateFormatter()
-            formatter.calendar = calendar
-            formatter.dateFormat = "MMM d"
-            return "Tomorrow, \(formatter.string(from: normalized))"
+            return L("Tomorrow, %@", LocalizedDates.string(normalized, template: "MMMd", calendar: calendar))
         } else {
-            let formatter = DateFormatter()
-            formatter.calendar = calendar
-            formatter.dateFormat = "EEE, MMM d"
-            return formatter.string(from: normalized)
+            return LocalizedDates.string(normalized, template: "EEEMMMd", calendar: calendar)
         }
     }
 
     func formatProgressHeader(for date: Date) -> String {
         let normalized = normalize(date)
         if isToday(normalized) {
-            return "TODAY'S GOALS"
+            return L("TODAY'S GOALS")
         } else if isTomorrow(normalized) {
-            return "TOMORROW'S GOALS"
+            return L("TOMORROW'S GOALS")
         } else {
-            let formatter = DateFormatter()
-            formatter.calendar = calendar
-            formatter.dateFormat = "EEE, MMM d"
-            return "\(formatter.string(from: normalized).uppercased())'S GOALS"
+            return L("%@'S GOALS", LocalizedDates.string(normalized, template: "EEEMMMd", calendar: calendar).uppercased())
         }
     }
 }

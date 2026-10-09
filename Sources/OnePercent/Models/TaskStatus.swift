@@ -9,10 +9,10 @@ enum TaskStatus: String, Codable, CaseIterable, Sendable {
 
     var displayName: String {
         switch self {
-        case .todo: return "To do"
-        case .inProgress: return "In progress"
-        case .done: return "Done"
-        case .deferred: return "Tomorrow"
+        case .todo: return L("To do")
+        case .inProgress: return L("In progress")
+        case .done: return L("Done")
+        case .deferred: return L("Tomorrow")
         }
     }
 

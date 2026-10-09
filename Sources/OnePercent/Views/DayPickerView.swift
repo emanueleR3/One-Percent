@@ -18,8 +18,8 @@ struct DayPickerView: View {
                 systemName: "chevron.left",
                 isEnabled: store.canGoToPreviousDay,
                 isHovered: isLeftHovered,
-                help: store.canGoToPreviousDay ? "Previous day" : "Minimum range reached (-7 days)",
-                accessibility: "Go to previous day",
+                help: store.canGoToPreviousDay ? L("Previous day") : L("Minimum range reached (-7 days)"),
+                accessibility: L("Go to previous day"),
                 onHover: { isLeftHovered = $0 }
             ) {
                 withAnimation(IslandAnimations.statusTransition) {
@@ -50,15 +50,15 @@ struct DayPickerView: View {
             .buttonStyle(PressScaleButtonStyle(scale: 0.97))
             .onHover { isTitleHovered = $0 }
             .animation(IslandAnimations.hoverFade, value: isTitleHovered)
-            .help(isToday ? "Current date: Today" : "Click to jump back to Today")
-            .accessibilityLabel("Selected date: \(store.dateService.formatDayTitle(for: store.selectedDate)). \(isToday ? "" : "Click to return to today.")")
+            .help(isToday ? L("Current date: Today") : L("Click to jump back to Today"))
+            .accessibilityLabel(L("Selected date: %@.", store.dateService.formatDayTitle(for: store.selectedDate)) + (isToday ? "" : " " + L("Click to return to today.")))
 
             chevron(
                 systemName: "chevron.right",
                 isEnabled: store.canGoToNextDay,
                 isHovered: isRightHovered,
-                help: store.canGoToNextDay ? "Next day" : "Maximum range reached (+7 days)",
-                accessibility: "Go to next day",
+                help: store.canGoToNextDay ? L("Next day") : L("Maximum range reached (+7 days)"),
+                accessibility: L("Go to next day"),
                 onHover: { isRightHovered = $0 }
             ) {
                 withAnimation(IslandAnimations.statusTransition) {

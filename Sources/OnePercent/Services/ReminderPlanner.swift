@@ -43,23 +43,23 @@ enum ReminderPlanner {
         case .wrapUp:
             guard summary.total > 0 else { return nil }
             if summary.remainingGoals > 0 {
-                let title = "\(plural(summary.remainingGoals, "goal")) left"
+                let title = Lp("%d goal left", "%d goals left", summary.remainingGoals)
                 if summary.streak > 0, !summary.isStreakCountedToday {
-                    return ReminderContent(title: title, body: "Keep your \(summary.streak)-day streak alive: one goal is enough.")
+                    return ReminderContent(title: title, body: L("Keep your %d-day streak alive: one goal is enough.", summary.streak))
                 }
                 return ReminderContent(title: title, body: pick([
-                    "Finish one more, or move the rest to tomorrow.",
-                    "A small push now, or a clean handoff to tomorrow.",
-                    "Close what you can. The rest can wait until tomorrow."
+                    L("Finish one more, or move the rest to tomorrow."),
+                    L("A small push now, or a clean handoff to tomorrow."),
+                    L("Close what you can. The rest can wait until tomorrow.")
                 ]))
             }
             if summary.remainingHabits > 0 {
                 return ReminderContent(
-                    title: "\(plural(summary.remainingHabits, "habit")) still open",
+                    title: Lp("%d habit still open", "%d habits still open", summary.remainingHabits),
                     body: pick([
-                        "Two minutes now keeps the chain going.",
-                        "Small and done beats perfect and skipped.",
-                        "One tick before bed and the streak survives."
+                        L("Two minutes now keeps the chain going."),
+                        L("Small and done beats perfect and skipped."),
+                        L("One tick before bed and the streak survives.")
                     ])
                 )
             }
@@ -67,28 +67,28 @@ enum ReminderPlanner {
 
         case .morning:
             if let theOne = summary.theOneTitle, !summary.theOneDone {
-                return ReminderContent(title: "Good morning", body: "Start with “\(theOne)”. Everything else follows.")
+                return ReminderContent(title: L("Good morning"), body: L("Start with “%@”. Everything else follows.", theOne))
             }
             if summary.remaining > 0 {
-                let n = plural(summary.remaining, "goal")
-                return ReminderContent(title: "Good morning", body: pick([
-                    "\(n) today. Pick the one that matters most.",
-                    "\(n) on the board. Start with the hardest while you're fresh."
+                let n = Lp("%d goal", "%d goals", summary.remaining)
+                return ReminderContent(title: L("Good morning"), body: pick([
+                    L("%@ today. Pick the one that matters most.", n),
+                    L("%@ on the board. Start with the hardest while you're fresh.", n)
                 ]))
             }
-            return ReminderContent(title: "Good morning", body: pick([
-                "What's the one thing that would make today a good day?",
-                "An empty list is a clean slate. Add your first goal."
+            return ReminderContent(title: L("Good morning"), body: pick([
+                L("What's the one thing that would make today a good day?"),
+                L("An empty list is a clean slate. Add your first goal.")
             ]))
 
         case .afternoon:
             guard summary.total > 0, summary.remaining > 0 else { return nil }
             return ReminderContent(
-                title: "\(summary.done) of \(summary.total) done",
+                title: L("%d of %d done", summary.done, summary.total),
                 body: pick([
-                    "Steady beats fast. \(summary.remaining) to go.",
-                    "You're moving. \(summary.remaining) more and the day is yours.",
-                    "Halfway there is still progress. \(summary.remaining) left."
+                    L("Steady beats fast. %d to go.", summary.remaining),
+                    L("You're moving. %d more and the day is yours.", summary.remaining),
+                    L("Halfway there is still progress. %d left.", summary.remaining)
                 ])
             )
         }
@@ -118,9 +118,5 @@ enum ReminderPlanner {
     static func clockString(minutes: Int) -> String {
         let clamped = clampMinutes(minutes)
         return String(format: "%02d:%02d", clamped / 60, clamped % 60)
-    }
-
-    private static func plural(_ count: Int, _ noun: String) -> String {
-        "\(count) \(noun)\(count == 1 ? "" : "s")"
     }
 }

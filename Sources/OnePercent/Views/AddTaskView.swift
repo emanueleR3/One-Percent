@@ -74,7 +74,7 @@ struct AddTaskView: View {
                 .onExitCommand {
                     onCancel()
                 }
-                .accessibilityLabel("New goal title")
+                .accessibilityLabel(L("New goal title"))
 
             repeatMenu
 
@@ -86,8 +86,8 @@ struct AddTaskView: View {
             }
             .buttonStyle(PressScaleButtonStyle(scale: 0.92))
             .disabled(trimmedTitle.isEmpty || isThinking)
-            .help("Add goal (Return)")
-            .accessibilityLabel("Add goal")
+            .help(L("Add goal (Return)"))
+            .accessibilityLabel(L("Add goal"))
 
             Button {
                 onCancel()
@@ -95,8 +95,8 @@ struct AddTaskView: View {
                 KeycapView(label: "esc")
             }
             .buttonStyle(PressScaleButtonStyle(scale: 0.92))
-            .help("Cancel (Esc)")
-            .accessibilityLabel("Cancel adding goal")
+            .help(L("Cancel (Esc)"))
+            .accessibilityLabel(L("Cancel adding goal"))
         }
         .padding(.horizontal, 10)
         .frame(height: 34)
@@ -124,7 +124,7 @@ struct AddTaskView: View {
                 Text(schedule.label(calendar: calendar))
                     .font(IslandTypography.statusLabel)
                 Spacer(minLength: 4)
-                Text("Tap days to turn them on or off")
+                Text(L("Tap days to turn them on or off"))
                     .font(IslandTypography.statCaption)
                     .foregroundStyle(IslandPalette.tertiaryText)
             }
@@ -155,7 +155,7 @@ struct AddTaskView: View {
     }
 
     private var placeholder: String {
-        usesSmartAdd ? "Try “call mom tomorrow #family”" : "Add a goal for this day"
+        usesSmartAdd ? L("Try “call mom tomorrow #family”") : L("Add a goal for this day")
     }
 
     private var repeatMenu: some View {
@@ -163,7 +163,7 @@ struct AddTaskView: View {
         let weeklyLabel = HabitSchedule.weekly(on: weekday).label(calendar: dateService.currentCalendar)
 
         return Menu {
-            Button("Does not repeat") { schedule = nil }
+            Button(L("Does not repeat")) { schedule = nil }
             Divider()
             Button(HabitSchedule.daily.label(calendar: dateService.currentCalendar)) { schedule = .daily }
             Button(HabitSchedule.weekdays.label(calendar: dateService.currentCalendar)) { schedule = .weekdays }
@@ -190,16 +190,16 @@ struct AddTaskView: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .animation(IslandAnimations.hoverFade, value: schedule)
-        .help(schedule == nil ? "Repeat: make this a habit" : "Repeats. Click to change")
-        .accessibilityLabel("Repeat")
+        .help(schedule == nil ? L("Repeat: make this a habit") : L("Repeats. Click to change"))
+        .accessibilityLabel(L("Repeat"))
     }
 
     private func shortLabel(for schedule: HabitSchedule) -> String {
         switch schedule.kind {
-        case .daily: return "Daily"
-        case .weekdays: return "Weekdays"
-        case .weekly: return "Weekly"
-        case .custom: return "Custom"
+        case .daily: return L("Daily")
+        case .weekdays: return L("Weekdays")
+        case .weekly: return L("Weekly")
+        case .custom: return L("Custom")
         }
     }
 
