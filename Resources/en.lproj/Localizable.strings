@@ -7,7 +7,9 @@
 "%@, status: %@" = "%@, status: %@";
 "%@. %d percent. %@, %@" = "%@. %d percent. %@, %@";
 "%d day" = "%d day";
+"%d day left" = "%d day left";
 "%d days" = "%d days";
+"%d days left" = "%d days left";
 "%d goal" = "%d goal";
 "%d goal left" = "%d goal left";
 "%d goals" = "%d goals";
@@ -30,6 +32,7 @@
 "30 days" = "30 days";
 "7 days" = "7 days";
 "A black notch over the real one, with your progress on both sides" = "A black notch over the real one, with your progress on both sides";
+"A free Apple ID signs the app for 7 days. The Mac renews it by itself while it is on and the iPhone is on the same Wi-Fi. Your goals are safe in the cloud either way." = "A free Apple ID signs the app for 7 days. The Mac renews it by itself while it is on and the iPhone is on the same Wi-Fi. Your goals are safe in the cloud either way.";
 "A fresh start." = "A fresh start.";
 "A prompt in the panel after this time" = "A prompt in the panel after this time";
 "A short nudge, no sound" = "A short nudge, no sound";
@@ -53,6 +56,7 @@
 "All done" = "All done";
 "All moved" = "All moved";
 "An empty list is a clean slate. Add your first goal." = "An empty list is a clean slate. Add your first goal.";
+"App signature" = "App signature";
 "Applies right away" = "Applies right away";
 "Approve One Percent in System Settings → General → Login Items" = "Approve One Percent in System Settings → General → Login Items";
 "Automatic" = "Automatic";
@@ -118,6 +122,7 @@
 "Every day" = "Every day";
 "Every day you close at 100% multiplies your score by 1.01." = "Every day you close at 100% multiplies your score by 1.01.";
 "Every week" = "Every week";
+"Expired" = "Expired";
 "External" = "External";
 "Failed to load habits: %@" = "Failed to load habits: %@";
 "Failed to load tasks: %@" = "Failed to load tasks: %@";
@@ -145,6 +150,7 @@
 "Hide One Percent" = "Hide One Percent";
 "In progress" = "In progress";
 "Instant" = "Instant";
+"Its signature runs out tomorrow at %@. The Mac renews it by itself; if it has not, plug the iPhone in and run install-iphone.sh." = "Its signature runs out tomorrow at %@. The Mac renews it by itself; if it has not, plug the iPhone in and run install-iphone.sh.";
 "Keep your %d-day streak alive: one goal is enough." = "Keep your %d-day streak alive: one goal is enough.";
 "Keep your goals and habits in step with your other devices." = "Keep your goals and habits in step with your other devices.";
 "Language" = "Language";
@@ -192,6 +198,7 @@
 "On" = "On";
 "On displays without a notch" = "On displays without a notch";
 "One Percent" = "One Percent";
+"One Percent stops opening soon" = "One Percent stops opening soon";
 "One tick before bed and the streak survives." = "One tick before bed and the streak survives.";
 "Open Settings" = "Open Settings";
 "Open delay" = "Open delay";
@@ -304,7 +311,9 @@
 "Understands days, repeats and picks your tags: “domani chiamare mamma”. Runs on this Mac with Apple Intelligence." = "Understands days, repeats and picks your tags: “domani chiamare mamma”. Runs on this Mac with Apple Intelligence.";
 "Undo" = "Undo";
 "Uses the wrap-up time above" = "Uses the wrap-up time above";
+"Valid until" = "Valid until";
 "Virtual notch" = "Virtual notch";
+"Warn me the evening before" = "Warn me the evening before";
 "Weekdays" = "Weekdays";
 "Weekly" = "Weekly";
 "What's the goal?" = "What's the goal?";

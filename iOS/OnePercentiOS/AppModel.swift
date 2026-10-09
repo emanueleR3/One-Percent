@@ -8,6 +8,7 @@ final class AppModel: ObservableObject {
     let store: TaskStore
     let cloud: CloudSyncController
     let reminders: PhoneReminders
+    let signature: SignatureWatch
     let focusSettings: PhoneFocusSettings
     let focus: FocusController
     let focusAlerts: FocusBackgroundAlerts
@@ -68,6 +69,7 @@ final class AppModel: ObservableObject {
             beforeFirstSync: { SyncBackup.make() }
         )
         self.reminders = PhoneReminders(store: store)
+        self.signature = SignatureWatch(calendar: { store.dateService.currentCalendar })
         let focusSettings = PhoneFocusSettings()
         self.focusSettings = focusSettings
         // The end-of-block notification is scheduled for the exact moment (so it arrives while the
@@ -88,6 +90,7 @@ final class AppModel: ObservableObject {
         Localizer.shared.setLanguage(resolved)
         store.dateService.setLocale(resolved.locale)
         reminders.languageDidChange()
+        if !isDemo { Task { await signature.refresh() } }
         widgetBridge?.refresh()
     }
 
@@ -96,6 +99,7 @@ final class AppModel: ObservableObject {
         if isDemo { return }
         reminders.start()
         await reminders.refreshAuthorization()
+        await signature.refresh()
         await cloud.start()
     }
 
@@ -106,6 +110,7 @@ final class AppModel: ObservableObject {
         store.ensureHabitOccurrences()
         focus.tick()   // a block may have ended while the app slept
         reminders.scheduleRefresh()
+        Task { await signature.refresh() }
         Task { await cloud.syncNow() }
     }
 

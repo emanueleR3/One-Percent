@@ -330,4 +330,13 @@ IT = {
 "tracked": "registrato",
 "work": "lavoro",
 "yet": "ancora",
+"%d day left": "%d giorno rimasto",
+"%d days left": "%d giorni rimasti",
+"A free Apple ID signs the app for 7 days. The Mac renews it by itself while it is on and the iPhone is on the same Wi-Fi. Your goals are safe in the cloud either way.": "Un Apple ID gratuito firma l'app per 7 giorni. Il Mac la rinnova da solo se è acceso e l'iPhone è sulla stessa rete Wi-Fi. I tuoi obiettivi restano al sicuro nel cloud in ogni caso.",
+"App signature": "Firma dell'app",
+"Expired": "Scaduta",
+"Its signature runs out tomorrow at %@. The Mac renews it by itself; if it has not, plug the iPhone in and run install-iphone.sh.": "La firma scade domani alle %@. Il Mac la rinnova da solo; se non l'ha fatto, collega l'iPhone e lancia install-iphone.sh.",
+"One Percent stops opening soon": "One Percent smetterà presto di aprirsi",
+"Valid until": "Valida fino a",
+"Warn me the evening before": "Avvisami la sera prima",
 }

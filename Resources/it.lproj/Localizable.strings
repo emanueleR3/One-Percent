@@ -7,7 +7,9 @@
 "%@, status: %@" = "%@, stato: %@";
 "%@. %d percent. %@, %@" = "%@. %d per cento. %@, %@";
 "%d day" = "%d giorno";
+"%d day left" = "%d giorno rimasto";
 "%d days" = "%d giorni";
+"%d days left" = "%d giorni rimasti";
 "%d goal" = "%d obiettivo";
 "%d goal left" = "%d obiettivo rimasto";
 "%d goals" = "%d obiettivi";
@@ -30,6 +32,7 @@
 "30 days" = "30 giorni";
 "7 days" = "7 giorni";
 "A black notch over the real one, with your progress on both sides" = "Un notch nero sopra quello vero, con il tuo avanzamento ai due lati";
+"A free Apple ID signs the app for 7 days. The Mac renews it by itself while it is on and the iPhone is on the same Wi-Fi. Your goals are safe in the cloud either way." = "Un Apple ID gratuito firma l'app per 7 giorni. Il Mac la rinnova da solo se è acceso e l'iPhone è sulla stessa rete Wi-Fi. I tuoi obiettivi restano al sicuro nel cloud in ogni caso.";
 "A fresh start." = "Si riparte da zero.";
 "A prompt in the panel after this time" = "Un avviso nel pannello dopo quest'ora";
 "A short nudge, no sound" = "Un breve promemoria, senza suono";
@@ -53,6 +56,7 @@
 "All done" = "Tutto fatto";
 "All moved" = "Tutto rimandato";
 "An empty list is a clean slate. Add your first goal." = "Una lista vuota è una pagina bianca. Aggiungi il tuo primo obiettivo.";
+"App signature" = "Firma dell'app";
 "Applies right away" = "Si applica subito";
 "Approve One Percent in System Settings → General → Login Items" = "Approva One Percent in Impostazioni di Sistema → Generali → Elementi login";
 "Automatic" = "Automatico";
@@ -118,6 +122,7 @@
 "Every day" = "Ogni giorno";
 "Every day you close at 100% multiplies your score by 1.01." = "Ogni giorno chiuso al 100% moltiplica il punteggio per 1,01.";
 "Every week" = "Ogni settimana";
+"Expired" = "Scaduta";
 "External" = "Esterno";
 "Failed to load habits: %@" = "Impossibile caricare le abitudini: %@";
 "Failed to load tasks: %@" = "Impossibile caricare gli obiettivi: %@";
@@ -145,6 +150,7 @@
 "Hide One Percent" = "Nascondi One Percent";
 "In progress" = "In corso";
 "Instant" = "Subito";
+"Its signature runs out tomorrow at %@. The Mac renews it by itself; if it has not, plug the iPhone in and run install-iphone.sh." = "La firma scade domani alle %@. Il Mac la rinnova da solo; se non l'ha fatto, collega l'iPhone e lancia install-iphone.sh.";
 "Keep your %d-day streak alive: one goal is enough." = "Mantieni viva la tua serie di %d giorni: basta un obiettivo.";
 "Keep your goals and habits in step with your other devices." = "Tieni obiettivi e abitudini allineati con i tuoi altri dispositivi.";
 "Language" = "Lingua";
@@ -192,6 +198,7 @@
 "On" = "Acceso";
 "On displays without a notch" = "Sugli schermi senza notch";
 "One Percent" = "One Percent";
+"One Percent stops opening soon" = "One Percent smetterà presto di aprirsi";
 "One tick before bed and the streak survives." = "Una spunta prima di dormire e la serie si salva.";
 "Open Settings" = "Apri Impostazioni";
 "Open delay" = "Ritardo di apertura";
@@ -304,7 +311,9 @@
 "Understands days, repeats and picks your tags: “domani chiamare mamma”. Runs on this Mac with Apple Intelligence." = "Capisce giorni, ripetizioni e sceglie i tuoi tag: “domani chiamare mamma”. Funziona su questo Mac con Apple Intelligence.";
 "Undo" = "Annulla";
 "Uses the wrap-up time above" = "Usa l'ora della chiusura qui sopra";
+"Valid until" = "Valida fino a";
 "Virtual notch" = "Notch virtuale";
+"Warn me the evening before" = "Avvisami la sera prima";
 "Weekdays" = "Giorni feriali";
 "Weekly" = "Ogni settimana";
 "What's the goal?" = "Qual è l'obiettivo?";

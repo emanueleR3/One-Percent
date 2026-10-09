@@ -9,12 +9,16 @@ struct SettingsSheet: View {
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { proxy in
             List {
                 CloudSettingsSection(cloud: model.cloud, calendar: store.dateService.currentCalendar)
 
                 RemindersSection(reminders: model.reminders, calendar: store.dateService.currentCalendar)
 
                 FocusSection(settings: model.focusSettings, alerts: model.focusAlerts)
+
+                SignatureSection(watch: model.signature, calendar: store.dateService.currentCalendar)
+                    .id("signature")
 
                 Section(L("Language")) {
                     HStack(spacing: 8) {
@@ -89,6 +93,14 @@ struct SettingsSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Theme.background)
+            #if DEBUG
+            // `-demoScrollSignature` opens Settings already scrolled to the signature row, for screenshots.
+            .onAppear {
+                guard ProcessInfo.processInfo.arguments.contains("-demoScrollSignature") else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { proxy.scrollTo("signature", anchor: .center) }
+            }
+            #endif
+            }
             .navigationTitle(L("Settings"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -336,6 +348,46 @@ struct RemindersSection: View {
 
     private func minutes(of date: Date) -> Int {
         calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
+    }
+}
+
+/// How long this copy of the app keeps opening. Only shown for a copy signed with a free Apple ID.
+struct SignatureSection: View {
+    @ObservedObject var watch: SignatureWatch
+    let calendar: Calendar
+
+    var body: some View {
+        if let expires = watch.expires, let days = watch.daysLeft {
+            Section(L("App signature")) {
+                HStack {
+                    Text(L("Valid until"))
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(LocalizedDates.string(expires, template: "EEEMMMdjm", calendar: calendar))
+                            .foregroundStyle(Theme.secondaryText)
+                        Text(remaining(days: days, expires: expires))
+                            .font(.system(size: 12, design: .rounded))
+                            .foregroundStyle(watch.isClose ? Theme.orange : Theme.tertiaryText)
+                    }
+                }
+                .listRowBackground(Theme.surface)
+
+                Toggle(L("Warn me the evening before"), isOn: $watch.warnsBefore)
+                    .tint(Theme.mint)
+                    .listRowBackground(Theme.surface)
+
+                Text(L("A free Apple ID signs the app for 7 days. The Mac renews it by itself while it is on and the iPhone is on the same Wi-Fi. Your goals are safe in the cloud either way."))
+                    .font(.system(size: 12, design: .rounded))
+                    .foregroundStyle(Theme.tertiaryText)
+                    .listRowBackground(Theme.surface)
+            }
+        }
+    }
+
+    private func remaining(days: Int, expires: Date) -> String {
+        if SigningExpiryPlanner.hasExpired(expires: expires, now: Date()) { return L("Expired") }
+        if days == 0 { return L("Today") }
+        return Lp("%d day left", "%d days left", days)
     }
 }
 
