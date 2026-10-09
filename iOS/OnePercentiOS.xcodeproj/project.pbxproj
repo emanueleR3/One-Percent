@@ -7,45 +7,91 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A1B2C3D4E5F6071800000001 /* OnePercentCore in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F6071800000005 /* OnePercentCore */; };
+		AC9E1E3F098F407F3401BC39 /* OnePercentCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5DA88CEA30C74BDAAEF82041 /* OnePercentCore */; };
+		584C8B614B3811B919C223F9 /* OnePercentWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 401310A524366A883B21F401 /* OnePercentWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		FE68BCE9AE8187A25FDD8BA4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EF88E8E92E57BFB2BD23CEF6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 28D858E6BA93F0ED074AB1B4;
+			remoteInfo = OnePercentWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		24445E6B053C79BBC198C4D0 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				584C8B614B3811B919C223F9 /* OnePercentWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
-		A1B2C3D4E5F6071800000002 /* OnePercentiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OnePercentiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		467430967A743A81BA289B5D /* OnePercentiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OnePercentiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		401310A524366A883B21F401 /* OnePercentWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OnePercentWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		A1B2C3D4E5F6071800000003 /* OnePercentiOS */ = {
+		6C9A6E9363285211A9E9A1A5 /* OnePercentiOS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = OnePercentiOS;
+			sourceTree = "<group>";
+		};
+		075097C2169F3DD8919B8755 /* OnePercentWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = OnePercentWidget;
+			sourceTree = "<group>";
+		};
+		6D57BEF43EC00F5D7865B8A4 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		A1B2C3D4E5F6071800000004 /* Frameworks */ = {
+		A921FF90DA2AACAF0A6ED8DB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1B2C3D4E5F6071800000001 /* OnePercentCore in Frameworks */,
+				AC9E1E3F098F407F3401BC39 /* OnePercentCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9A9598B8CAD64AB626B29BD5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		A1B2C3D4E5F6071800000006 = {
+		31CCE5EBD2C3824C5E6C5A15 = {
 			isa = PBXGroup;
 			children = (
-				A1B2C3D4E5F6071800000003 /* OnePercentiOS */,
-				A1B2C3D4E5F6071800000007 /* Products */,
+				6C9A6E9363285211A9E9A1A5 /* OnePercentiOS */,
+				075097C2169F3DD8919B8755 /* OnePercentWidget */,
+				6D57BEF43EC00F5D7865B8A4 /* Shared */,
+				3F0E2A9B778175354C6B4EF3 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		A1B2C3D4E5F6071800000007 /* Products */ = {
+		3F0E2A9B778175354C6B4EF3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A1B2C3D4E5F6071800000002 /* OnePercentiOS.app */,
+				467430967A743A81BA289B5D /* OnePercentiOS.app */,
+				401310A524366A883B21F401 /* OnePercentWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -53,46 +99,73 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A1B2C3D4E5F6071800000008 /* OnePercentiOS */ = {
+		1982255BE1E6A654D039D63B /* OnePercentiOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A1B2C3D4E5F6071800000009 /* Build configuration list for PBXNativeTarget "OnePercentiOS" */;
+			buildConfigurationList = B6E449A3C4FC13A125CB0E73 /* Build configuration list for PBXNativeTarget "OnePercentiOS" */;
 			buildPhases = (
-				A1B2C3D4E5F607180000000A /* Sources */,
-				A1B2C3D4E5F6071800000004 /* Frameworks */,
-				A1B2C3D4E5F607180000000B /* Resources */,
-				A1B2C3D4E5F6071800000013 /* Copy language packs */,
+				BB5FB7E64CC553FD1BF7989E /* Sources */,
+				A921FF90DA2AACAF0A6ED8DB /* Frameworks */,
+				886DC0FDC7DEA0FF98AA6080 /* Resources */,
+				8AD2AC53FEDA672313DB4F0E /* Copy language packs */,
+				24445E6B053C79BBC198C4D0 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A7B8253933FABFBA327759A0 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				6C9A6E9363285211A9E9A1A5 /* OnePercentiOS */,
+				6D57BEF43EC00F5D7865B8A4 /* Shared */,
+			);
+			name = OnePercentiOS;
+			packageProductDependencies = (
+				5DA88CEA30C74BDAAEF82041 /* OnePercentCore */,
+			);
+			productName = OnePercentiOS;
+			productReference = 467430967A743A81BA289B5D /* OnePercentiOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		28D858E6BA93F0ED074AB1B4 /* OnePercentWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 413670F6E5EA0D55350D3000 /* Build configuration list for PBXNativeTarget "OnePercentWidget" */;
+			buildPhases = (
+				DA4C594BEB882FCFE91875FB /* Sources */,
+				9A9598B8CAD64AB626B29BD5 /* Frameworks */,
+				8C88C99455D57CC9472F9AF7 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				A1B2C3D4E5F6071800000003 /* OnePercentiOS */,
+				075097C2169F3DD8919B8755 /* OnePercentWidget */,
+				6D57BEF43EC00F5D7865B8A4 /* Shared */,
 			);
-			name = OnePercentiOS;
-			packageProductDependencies = (
-				A1B2C3D4E5F6071800000005 /* OnePercentCore */,
-			);
-			productName = OnePercentiOS;
-			productReference = A1B2C3D4E5F6071800000002 /* OnePercentiOS.app */;
-			productType = "com.apple.product-type.application";
+			name = OnePercentWidget;
+			productName = OnePercentWidget;
+			productReference = 401310A524366A883B21F401 /* OnePercentWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		A1B2C3D4E5F607180000000C /* Project object */ = {
+		EF88E8E92E57BFB2BD23CEF6 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
-					A1B2C3D4E5F6071800000008 = {
+					1982255BE1E6A654D039D63B = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					28D858E6BA93F0ED074AB1B4 = {
 						CreatedOnToolsVersion = 27.0;
 					};
 				};
 			};
-			buildConfigurationList = A1B2C3D4E5F607180000000D /* Build configuration list for PBXProject "OnePercentiOS" */;
+			buildConfigurationList = 92800E076CCDFDFE655599B1 /* Build configuration list for PBXProject "OnePercentiOS" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -100,23 +173,31 @@
 				Base,
 				it,
 			);
-			mainGroup = A1B2C3D4E5F6071800000006;
+			mainGroup = 31CCE5EBD2C3824C5E6C5A15;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				A1B2C3D4E5F607180000000E /* XCLocalSwiftPackageReference ".." */,
+				976DC9C148BEF2859D5C8E4D /* XCLocalSwiftPackageReference ".." */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = A1B2C3D4E5F6071800000007 /* Products */;
+			productRefGroup = 3F0E2A9B778175354C6B4EF3 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A1B2C3D4E5F6071800000008 /* OnePercentiOS */,
+				1982255BE1E6A654D039D63B /* OnePercentiOS */,
+				28D858E6BA93F0ED074AB1B4 /* OnePercentWidget */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A1B2C3D4E5F607180000000B /* Resources */ = {
+		886DC0FDC7DEA0FF98AA6080 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8C88C99455D57CC9472F9AF7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -126,7 +207,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		A1B2C3D4E5F6071800000013 /* Copy language packs */ = {
+		8AD2AC53FEDA672313DB4F0E /* Copy language packs */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -148,7 +229,14 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A1B2C3D4E5F607180000000A /* Sources */ = {
+		BB5FB7E64CC553FD1BF7989E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DA4C594BEB882FCFE91875FB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -157,8 +245,16 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		A7B8253933FABFBA327759A0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 28D858E6BA93F0ED074AB1B4 /* OnePercentWidget */;
+			targetProxy = FE68BCE9AE8187A25FDD8BA4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
-		A1B2C3D4E5F6071800000011 /* Debug */ = {
+		7FC57B813A982A4E5D462263 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -174,18 +270,18 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_OPTIMIZATION_LEVEL = -Onone;
 			};
 			name = Debug;
 		};
-		A1B2C3D4E5F6071800000012 /* Release */ = {
+		A3FDFBA8CD5BC41DB1EE661B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEBUG_INFORMATION_FORMAT = dwarf-with-dsym;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -196,11 +292,12 @@
 			};
 			name = Release;
 		};
-		A1B2C3D4E5F607180000000F /* Debug */ = {
+		AE316A5EBD23CE47E36CB05B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/OnePercentiOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = YOUR_TEAM_ID;
@@ -228,11 +325,12 @@
 			};
 			name = Debug;
 		};
-		A1B2C3D4E5F6071800000010 /* Release */ = {
+		E1D08321903436EBA52148AD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/OnePercentiOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = YOUR_TEAM_ID;
@@ -260,23 +358,88 @@
 			};
 			name = Release;
 		};
+		8A9B7D5E726F2EF55886C824 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = Config/OnePercentWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YOUR_TEAM_ID;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/OnePercentWidget-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "One Percent";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.onepercent.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		3621A3B0BDC7A0C6280E537D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = Config/OnePercentWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YOUR_TEAM_ID;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/OnePercentWidget-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "One Percent";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.onepercent.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A1B2C3D4E5F607180000000D /* Build configuration list for PBXProject "OnePercentiOS" */ = {
+		92800E076CCDFDFE655599B1 /* Build configuration list for PBXProject "OnePercentiOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				A1B2C3D4E5F6071800000011 /* Debug */,
-				A1B2C3D4E5F6071800000012 /* Release */,
+				7FC57B813A982A4E5D462263 /* Debug */,
+				A3FDFBA8CD5BC41DB1EE661B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A1B2C3D4E5F6071800000009 /* Build configuration list for PBXNativeTarget "OnePercentiOS" */ = {
+		B6E449A3C4FC13A125CB0E73 /* Build configuration list for PBXNativeTarget "OnePercentiOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				A1B2C3D4E5F607180000000F /* Debug */,
-				A1B2C3D4E5F6071800000010 /* Release */,
+				AE316A5EBD23CE47E36CB05B /* Debug */,
+				E1D08321903436EBA52148AD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		413670F6E5EA0D55350D3000 /* Build configuration list for PBXNativeTarget "OnePercentWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8A9B7D5E726F2EF55886C824 /* Debug */,
+				3621A3B0BDC7A0C6280E537D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -284,19 +447,19 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		A1B2C3D4E5F607180000000E /* XCLocalSwiftPackageReference ".." */ = {
+		976DC9C148BEF2859D5C8E4D /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "..";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		A1B2C3D4E5F6071800000005 /* OnePercentCore */ = {
+		5DA88CEA30C74BDAAEF82041 /* OnePercentCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = A1B2C3D4E5F607180000000E /* XCLocalSwiftPackageReference ".." */;
+			package = 976DC9C148BEF2859D5C8E4D /* XCLocalSwiftPackageReference ".." */;
 			productName = OnePercentCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = A1B2C3D4E5F607180000000C /* Project object */;
+	rootObject = EF88E8E92E57BFB2BD23CEF6 /* Project object */;
 }

@@ -8,6 +8,10 @@ final class AppModel: ObservableObject {
     let store: TaskStore
     let cloud: CloudSyncController
     let reminders: PhoneReminders
+    let focusSettings: PhoneFocusSettings
+    let focus: FocusController
+    let focusAlerts: FocusBackgroundAlerts
+    private(set) var widgetBridge: WidgetBridge?
 
     @Published var language: LanguageChoice {
         didSet {
@@ -64,7 +68,16 @@ final class AppModel: ObservableObject {
             beforeFirstSync: { SyncBackup.make() }
         )
         self.reminders = PhoneReminders(store: store)
+        let focusSettings = PhoneFocusSettings()
+        self.focusSettings = focusSettings
+        // The end-of-block notification is scheduled for the exact moment (so it arrives while the
+        // app sleeps); the controller itself only taps the phone when a block ends on screen.
+        let focus = FocusController(store: store, preferences: focusSettings, scheduler: nil, onAlert: { Haptics.success() })
+        self.focus = focus
+        self.focusAlerts = FocusBackgroundAlerts(focus: focus, settings: focusSettings)
         applyLanguage()
+        // Demo data must never reach the real widget.
+        if !demo { widgetBridge = WidgetBridge(store: store) }
         #if DEBUG
         if demo { DemoData.fill(store) }
         #endif
@@ -75,6 +88,7 @@ final class AppModel: ObservableObject {
         Localizer.shared.setLanguage(resolved)
         store.dateService.setLocale(resolved.locale)
         reminders.languageDidChange()
+        widgetBridge?.refresh()
     }
 
     /// Picks up a saved session and starts syncing.
@@ -90,6 +104,7 @@ final class AppModel: ObservableObject {
         if isDemo { return }
         store.dateService.refreshToday()
         store.ensureHabitOccurrences()
+        focus.tick()   // a block may have ended while the app slept
         reminders.scheduleRefresh()
         Task { await cloud.syncNow() }
     }

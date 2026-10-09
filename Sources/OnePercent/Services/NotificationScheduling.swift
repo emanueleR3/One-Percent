@@ -8,6 +8,10 @@ enum NotificationAuthorization: Equatable, Sendable {
     case authorized
 }
 
+extension NotificationScheduling {
+    func canDeliverAlerts() async -> Bool { await authorizationStatus() == .authorized }
+}
+
 /// One reminder, as plain data: what to say and when.
 struct ReminderRequest: Equatable, Sendable {
     var id: String
@@ -20,7 +24,7 @@ struct ReminderRequest: Equatable, Sendable {
 
 /// The slice of `UNUserNotificationCenter` the app needs, so scheduling can be tested with a fake.
 @MainActor
-protocol NotificationScheduling: AnyObject {
+protocol NotificationScheduling: AnyObject, FocusAlerting {
     var onMoveToTomorrow: (() -> Void)? { get set }
     var onOpenRequested: (() -> Void)? { get set }
 

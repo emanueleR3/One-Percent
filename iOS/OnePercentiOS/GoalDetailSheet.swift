@@ -5,6 +5,7 @@ import OnePercentCore
 struct GoalDetailSheet: View {
     @ObservedObject var model: AppModel
     @ObservedObject var store: TaskStore
+    @ObservedObject var focusController: FocusController
     let taskID: UUID
     @Environment(\.dismiss) private var dismiss
 
@@ -61,6 +62,7 @@ struct GoalDetailSheet: View {
 
                 statusPicker(task)
                 theOneRow(task)
+                timeBlock(task)
                 if let habit = store.habit(for: task.habitID) { habitRow(habit) }
 
                 block(L("Note")) {
@@ -154,6 +156,63 @@ struct GoalDetailSheet: View {
         .buttonStyle(.plain)
         .disabled(task.status == .deferred)
         .opacity(task.status == .deferred ? 0.45 : 1)
+    }
+
+    // MARK: Time
+
+    @ViewBuilder
+    private func timeBlock(_ task: TaskItem) -> some View {
+        let canTime = task.status == .todo || task.status == .inProgress
+        let hasTime = task.isTimerRunning || task.timeSpent(at: Date()) >= 1
+        if canTime || hasTime {
+            block(L("Time")) {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        if task.isTimerRunning {
+                            TimelineView(.periodic(from: .now, by: 1)) { context in
+                                Text(FocusFormat.clock(task.timeSpent(at: context.date)))
+                                    .font(.system(size: 30, weight: .semibold, design: .rounded)).monospacedDigit().foregroundStyle(Theme.amber)
+                            }
+                        } else {
+                            Text(hasTime ? FocusFormat.compact(task.timeSpent(at: Date())) : L("Not timed yet"))
+                                .font(.system(size: hasTime ? 30 : 17, weight: .semibold, design: .rounded)).monospacedDigit()
+                                .foregroundStyle(hasTime ? Theme.primaryText : Theme.tertiaryText)
+                        }
+                        if !task.focusSessions.isEmpty {
+                            Text(Lp("%d session", "%d sessions", task.focusSessions.count))
+                                .font(.system(size: 13, design: .rounded)).foregroundStyle(Theme.tertiaryText)
+                        }
+                    }
+                    Spacer()
+                    if !task.focusSessions.isEmpty && !task.isTimerRunning {
+                        Button { store.resetFocusTime(id: taskID) } label: {
+                            Text(L("Reset"))
+                                .font(.system(size: 14, weight: .semibold, design: .rounded)).foregroundStyle(Theme.tertiaryText)
+                                .padding(.horizontal, 14).frame(height: 40)
+                                .background(Capsule().fill(Theme.surface))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(L("Reset tracked time"))
+                    }
+                    if canTime {
+                        Button {
+                            focusController.toggle(taskID: taskID)
+                            Haptics.tap()
+                        } label: {
+                            Label(task.isTimerRunning ? L("Pause") : (task.focusSessions.isEmpty ? L("Start") : L("Resume")),
+                                  systemImage: task.isTimerRunning ? "pause.fill" : "play.fill")
+                                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                .foregroundStyle(task.isTimerRunning ? Theme.amber : Color.black.opacity(0.85))
+                                .padding(.horizontal, 18).frame(height: 44)
+                                .background(Capsule().fill(task.isTimerRunning ? Theme.amber.opacity(0.18) : Theme.mint))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(14)
+                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.surface))
+            }
+        }
     }
 
     private func habitRow(_ habit: Habit) -> some View {

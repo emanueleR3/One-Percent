@@ -159,7 +159,7 @@ final class PhoneReminders: NSObject, ObservableObject, UNUserNotificationCenter
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        [.banner]
+        notification.request.identifier == FocusBackgroundAlerts.identifier ? [.banner, .sound] : [.banner]
     }
 
     nonisolated func userNotificationCenter(

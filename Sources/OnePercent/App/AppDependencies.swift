@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Combine
 import OnePercentCore
 
@@ -11,6 +12,7 @@ final class AppDependencies {
     let services: IslandServices
     let notchWindowController: NotchWindowController
     let menuBarController: MenuBarController
+    private let focusSleepGuard: FocusSleepGuard
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -70,12 +72,21 @@ final class AppDependencies {
             ? Self.makeCloudSync(store: store)
             : nil
 
+        let focus = FocusController(
+            store: store,
+            preferences: preferences,
+            scheduler: notifications,
+            playSound: { name in NSSound(named: NSSound.Name(name))?.play() },
+            onAlert: { IslandHaptics.success() }
+        )
+        self.focusSleepGuard = FocusSleepGuard(focus: focus)
+
         let services = IslandServices(
             preferences: preferences,
             reminders: reminders,
             launchAtLogin: LaunchAtLoginController(),
             smartAdd: SmartAddService(),
-            focus: FocusController(store: store, preferences: preferences, scheduler: notifications),
+            focus: focus,
             cloud: cloud
         )
         self.services = services

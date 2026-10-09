@@ -207,3 +207,5 @@ final class AppPreferences: ObservableObject {
         return try? JSONDecoder().decode(type, from: data)
     }
 }
+
+extension AppPreferences: FocusSettings {}

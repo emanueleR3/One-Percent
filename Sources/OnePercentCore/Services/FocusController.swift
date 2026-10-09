@@ -1,41 +1,57 @@
 import Foundation
-import AppKit
 import Combine
-import OnePercentCore
+
+/// What the focus timer needs to know about the user's choices (Pomodoro, sound, alerts).
+public protocol FocusSettings: AnyObject {
+    var pomodoroEnabled: Bool { get }
+    var pomodoroConfig: PomodoroConfig { get }
+    var focusSound: Bool { get }
+    var focusNotifications: Bool { get }
+}
+
+/// How the timer announces the end of a block when the user asked for a notification.
+public protocol FocusAlerting: AnyObject {
+    /// True when the system lets the app post a notification.
+    func canDeliverAlerts() async -> Bool
+    /// Posts a notification right away.
+    func deliver(id: String, title: String, body: String) async
+}
 
 /// Runs the focus timer and the optional Pomodoro cycle on top of `TaskStore`.
 ///
 /// The store owns the facts (which goal is being timed, banked sessions). This owns the rhythm:
 /// the one-second tick, when a block ends, the break that follows, the sound / notification, and
-/// pausing when the Mac goes to sleep. A fake clock and scheduler make all of it testable.
+/// pausing when the device goes to sleep. A fake clock and scheduler make all of it testable.
+/// Sound, haptics and sleep notifications are platform business: the app passes them in.
 @MainActor
-final class FocusController: ObservableObject {
+public final class FocusController: ObservableObject {
     /// Ticks between checkpoints written to disk while a timer runs.
-    static let heartbeatEvery = 30
+    public static let heartbeatEvery = 30
 
     /// The current Pomodoro block (focus or break). Nil in free-timer mode and between blocks.
-    @Published private(set) var pomodoro: PomodoroState?
+    @Published public private(set) var pomodoro: PomodoroState?
 
     private let store: TaskStore
-    private let preferences: AppPreferences
-    private let scheduler: NotificationScheduling?
+    private let preferences: FocusSettings
+    private let scheduler: FocusAlerting?
     private let now: () -> Date
     private let playSound: (String) -> Void
+    private let onAlert: () -> Void
     private let autoTick: Bool
 
     private var completedBlocks = 0
     private var ticksSinceHeartbeat = 0
     private var ticker: Timer?
     private var pendingAlert: Task<Void, Never>?
-    private var observers: [NSObjectProtocol] = []
     private var cancellables = Set<AnyCancellable>()
 
-    init(
+    public init(
         store: TaskStore,
-        preferences: AppPreferences,
-        scheduler: NotificationScheduling?,
+        preferences: FocusSettings,
+        scheduler: FocusAlerting?,
         now: @escaping () -> Date = { Date() },
-        playSound: @escaping (String) -> Void = { name in NSSound(named: NSSound.Name(name))?.play() },
+        playSound: @escaping (String) -> Void = { _ in },
+        onAlert: @escaping () -> Void = {},
         autoTick: Bool = true
     ) {
         self.store = store
@@ -43,9 +59,9 @@ final class FocusController: ObservableObject {
         self.scheduler = scheduler
         self.now = now
         self.playSound = playSound
+        self.onAlert = onAlert
         self.autoTick = autoTick
 
-        if autoTick { observeSleep() }
         // A timer may already be running (e.g. started from the detail page): keep ticking for it.
         store.$allTasks
             .sink { [weak self] _ in
@@ -55,23 +71,22 @@ final class FocusController: ObservableObject {
     }
 
     deinit {
-        observers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }
         ticker?.invalidate()
     }
 
     // MARK: - State
 
-    var runningTaskID: UUID? { store.runningTimerTaskID }
+    public var runningTaskID: UUID? { store.runningTimerTaskID }
 
     /// Something is timing, or a Pomodoro block (even a paused one or a break) is on screen.
-    var isActive: Bool { runningTaskID != nil || pomodoro != nil }
+    public var isActive: Bool { runningTaskID != nil || pomodoro != nil }
 
-    var isBreak: Bool { pomodoro?.phase.isBreak ?? false }
+    public var isBreak: Bool { pomodoro?.phase.isBreak ?? false }
 
     // MARK: - Actions
 
     /// Play / pause for a goal, as the row button does.
-    func toggle(taskID: UUID) {
+    public func toggle(taskID: UUID) {
         if store.runningTimerTaskID == taskID {
             pause()
         } else if let block = pomodoro, block.isPaused, block.phase == .focus, block.taskID == taskID {
@@ -81,7 +96,7 @@ final class FocusController: ObservableObject {
         }
     }
 
-    func start(taskID: UUID) {
+    public func start(taskID: UUID) {
         let moment = now()
         let usePomodoro = preferences.pomodoroEnabled
 
@@ -98,7 +113,7 @@ final class FocusController: ObservableObject {
         updateTicker()
     }
 
-    func pause() {
+    public func pause() {
         let moment = now()
         if let id = store.runningTimerTaskID {
             store.pauseTimer(id: id, at: moment)
@@ -109,7 +124,7 @@ final class FocusController: ObservableObject {
         updateTicker()
     }
 
-    func resume() {
+    public func resume() {
         let moment = now()
         guard let block = pomodoro, block.isPaused else { return }
         if block.phase == .focus, let id = block.taskID {
@@ -124,20 +139,20 @@ final class FocusController: ObservableObject {
     }
 
     /// Ends the session: banks the time and forgets the cycle.
-    func stop() {
+    public func stop() {
         store.pauseRunningTimer(at: now())
         pomodoro = nil
         completedBlocks = 0
         updateTicker()
     }
 
-    func skipBreak() {
+    public func skipBreak() {
         guard isBreak else { return }
         pomodoro = nil
         updateTicker()
     }
 
-    func systemWillSleep() {
+    public func systemWillSleep() {
         guard isActive, !(pomodoro?.isPaused ?? false) || runningTaskID != nil else { return }
         pause()
     }
@@ -145,7 +160,7 @@ final class FocusController: ObservableObject {
     // MARK: - Ticking
 
     /// Called every second while something runs.
-    func tick() {
+    public func tick() {
         let moment = now()
 
         if let block = pomodoro, block.phase == .focus, !block.isPaused, let id = block.taskID {
@@ -198,18 +213,18 @@ final class FocusController: ObservableObject {
     }
 
     private func alert(title: String, body: String, sound: String) {
-        IslandHaptics.success()
+        onAlert()
         if preferences.focusSound { playSound(sound) }
 
         guard preferences.focusNotifications, let scheduler else { return }
         pendingAlert = Task {
-            guard await scheduler.authorizationStatus() == .authorized else { return }
+            guard await scheduler.canDeliverAlerts() else { return }
             await scheduler.deliver(id: "onepercent.focus", title: title, body: body)
         }
     }
 
     /// Waits for an alert still being delivered. For tests.
-    func settle() async {
+    public func settle() async {
         await pendingAlert?.value
     }
 
@@ -229,15 +244,6 @@ final class FocusController: ObservableObject {
         } else {
             ticker?.invalidate()
             ticker = nil
-        }
-    }
-
-    private func observeSleep() {
-        let center = NSWorkspace.shared.notificationCenter
-        for name in [NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification] {
-            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor [weak self] in self?.systemWillSleep() }
-            })
         }
     }
 }

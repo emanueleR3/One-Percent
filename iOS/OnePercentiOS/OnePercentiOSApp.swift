@@ -8,7 +8,7 @@ struct OnePercentiOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            TodayView(model: model, store: model.store)
+            TodayView(model: model, store: model.store, focus: model.focus)
                 // Texts are looked up as views are built, so a language change rebuilds them.
                 .id(model.language)
                 .preferredColorScheme(.dark)

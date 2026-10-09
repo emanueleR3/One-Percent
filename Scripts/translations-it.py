@@ -27,6 +27,7 @@ IT = {
 "%d-day streak": "Serie: %d",
 "1 percent score %@ times, %d perfect days": "Punteggio 1 percento: %@ volte, %d giorni perfetti",
 "1% score": "Punteggio 1%",
+"Reorder": "Riordina",
 "Day": "Giorno",
 "Delete": "Elimina",
 "The first sign-in merges what is on this iPhone with the cloud. Nothing is deleted.": "Il primo accesso unisce ciò che è su questo iPhone con il cloud. Non viene cancellato nulla.",

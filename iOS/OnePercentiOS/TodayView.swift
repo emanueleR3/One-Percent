@@ -5,8 +5,10 @@ import OnePercentCore
 struct TodayView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var store: TaskStore
+    @ObservedObject var focus: FocusController
 
     @State private var sheet: ActiveSheet?
+    @State private var editMode: EditMode = .inactive
 
     enum ActiveSheet: Identifiable {
         case add
@@ -23,6 +25,8 @@ struct TodayView: View {
             }
         }
     }
+
+    private var isReordering: Bool { editMode == .active }
 
     var body: some View {
         let tasks = store.selectedDateTasks
@@ -48,6 +52,11 @@ struct TodayView: View {
 
                     DayBar(store: store)
                         .padding(.vertical, 4)
+
+                    if focus.isActive {
+                        FocusStrip(focus: focus, store: store, settings: model.focusSettings)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
                 }
                 .listRowInsets(EdgeInsets(top: 4, leading: 20, bottom: 4, trailing: 20))
                 .listRowBackground(Color.clear)
@@ -65,11 +74,13 @@ struct TodayView: View {
                             tags: task.tags.map { (name: $0, color: model.tagColor($0)) },
                             habitStreak: task.habitID.map { store.habitStats(for: $0).currentStreak },
                             onToggle: { toggle(task) },
-                            onOpen: { sheet = .detail(task.id) }
+                            onOpen: { sheet = .detail(task.id) },
+                            onToggleTimer: { focus.toggle(taskID: task.id); Haptics.tap() }
                         )
-                        .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 20))
+                        .listRowInsets(EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: isReordering ? 8 : 12))
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
+                        // Quick actions: swipe left for tomorrow / delete, right for The One.
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
                                 withAnimation { store.deleteTask(id: task.id) }
@@ -93,6 +104,7 @@ struct TodayView: View {
                         }
                         .contextMenu { contextMenu(for: task) }
                     }
+                    .onMove(perform: move)
                 }
 
                 // Room under the last goal for the add button.
@@ -103,38 +115,71 @@ struct TodayView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .environment(\.editMode, $editMode)
             .animation(.spring(response: 0.5, dampingFraction: 0.85), value: tasks)
+            .animation(.spring(response: 0.45, dampingFraction: 0.85), value: focus.isActive)
             .refreshable { await model.cloud.syncNow() }
+            .id(store.selectedDate)
+            .transition(.opacity)
 
-            Button { sheet = .add } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Color.black.opacity(0.85))
-                    .frame(width: 62, height: 62)
-                    .background(Circle().fill(Theme.mint))
-                    .shadow(color: Theme.mint.opacity(0.35), radius: 16, y: 6)
+            if isReordering {
+                Button { withAnimation { editMode = .inactive } } label: {
+                    Label(L("Done"), systemImage: "checkmark")
+                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Color.black.opacity(0.85))
+                        .padding(.horizontal, 22)
+                        .frame(height: 54)
+                        .background(Capsule().fill(Theme.mint))
+                        .shadow(color: Theme.mint.opacity(0.35), radius: 16, y: 6)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 22)
+                .padding(.bottom, 14)
+            } else {
+                Button { sheet = .add } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(Color.black.opacity(0.85))
+                        .frame(width: 62, height: 62)
+                        .background(Circle().fill(Theme.mint))
+                        .shadow(color: Theme.mint.opacity(0.35), radius: 16, y: 6)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 22)
+                .padding(.bottom, 14)
+                .accessibilityLabel(L("Add new goal"))
             }
-            .buttonStyle(.plain)
-            .padding(.trailing, 22)
-            .padding(.bottom, 14)
-            .accessibilityLabel(L("Add new goal"))
         }
+        .animation(.easeInOut(duration: 0.2), value: store.selectedDate)
         .onAppear(perform: openSheetForInspection)
         .sheet(item: $sheet) { sheet in
             switch sheet {
             case .add: AddGoalSheet(model: model, store: store)
-            case .detail(let id): GoalDetailSheet(model: model, store: store, taskID: id)
+            case .detail(let id): GoalDetailSheet(model: model, store: store, focusController: focus, taskID: id)
             case .settings: SettingsSheet(model: model, store: store)
             case .stats: StatsSheet(model: model, store: store)
             }
         }
     }
 
+    // MARK: Reordering
+
+    private func move(from source: IndexSet, to destination: Int) {
+        guard let from = source.first else { return }
+        let to = destination > from ? destination - 1 : destination
+        store.moveTask(from: from, to: to)
+    }
+
     /// Development builds can open a screen at launch (`-demo -demoSheet add|settings|stats|detail`) to inspect it.
     private func openSheetForInspection() {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        guard model.isDemo, let index = arguments.firstIndex(of: "-demoSheet"), index + 1 < arguments.count else { return }
+        guard model.isDemo else { return }
+        if arguments.contains("-demoReorder") { editMode = .active }
+        if arguments.contains("-demoFocus"), let first = store.selectedDateTasks.first(where: { $0.status == .inProgress }) {
+            focus.start(taskID: first.id)
+        }
+        guard let index = arguments.firstIndex(of: "-demoSheet"), index + 1 < arguments.count else { return }
         switch arguments[index + 1] {
         case "add": sheet = .add
         case "settings": sheet = .settings
@@ -177,6 +222,7 @@ struct TodayView: View {
         Button { store.toggleTheOne(id: task.id) } label: {
             Label(task.isTheOne ? L("Remove The One") : L("Make The One"), systemImage: "star")
         }
+        Button { withAnimation { editMode = .active } } label: { Label(L("Reorder"), systemImage: "arrow.up.arrow.down") }
         Button { sheet = .detail(task.id) } label: { Label(L("Details…"), systemImage: "list.bullet.indent") }
         Divider()
         Button(role: .destructive) { store.deleteTask(id: task.id) } label: { Label(L("Delete goal"), systemImage: "trash") }
@@ -209,13 +255,14 @@ private struct EmptyDay: View {
     }
 }
 
-/// One goal in the list: the status mark, the title and what is attached to it.
+/// One goal in the list: the status mark, the title, what is attached to it and its timer.
 struct GoalRow: View {
     let task: TaskItem
     let tags: [(name: String, color: Color)]
     let habitStreak: Int?
     var onToggle: () -> Void
     var onOpen: () -> Void
+    var onToggleTimer: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 6) {
@@ -247,8 +294,14 @@ struct GoalRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(L("Open details for %@", task.title))
+
+            if canTime {
+                TimerButton(isRunning: task.isTimerRunning, action: onToggleTimer)
+            }
         }
     }
+
+    private var canTime: Bool { task.status == .todo || task.status == .inProgress }
 
     private var titleColor: Color {
         switch task.status {
@@ -260,9 +313,11 @@ struct GoalRow: View {
 
     @ViewBuilder
     private var accessories: some View {
-        let hasAny = !tags.isEmpty || !task.subtasks.isEmpty || task.note != nil || habitStreak != nil
+        let hasTime = task.isTimerRunning || task.timeSpent(at: Date()) >= 1
+        let hasAny = !tags.isEmpty || !task.subtasks.isEmpty || task.note != nil || habitStreak != nil || hasTime
         if hasAny {
             HStack(spacing: 8) {
+                if hasTime { TimeChip(task: task) }
                 if let habitStreak {
                     HStack(spacing: 3) {
                         Image(systemName: "repeat").font(.system(size: 10, weight: .bold))
@@ -302,7 +357,7 @@ struct GoalRow: View {
             Image(systemName: "star.fill").font(.system(size: 15)).foregroundStyle(Theme.lavender)
         } else if task.status == .deferred {
             Chip(text: L("Tomorrow"), tint: Theme.slate)
-        } else if task.status == .inProgress {
+        } else if task.status == .inProgress && !task.isTimerRunning {
             Chip(text: L("In progress"), tint: Theme.amber)
         }
     }

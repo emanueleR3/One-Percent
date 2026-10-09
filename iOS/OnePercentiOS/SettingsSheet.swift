@@ -14,6 +14,8 @@ struct SettingsSheet: View {
 
                 RemindersSection(reminders: model.reminders, calendar: store.dateService.currentCalendar)
 
+                FocusSection(settings: model.focusSettings, alerts: model.focusAlerts)
+
                 Section(L("Language")) {
                     HStack(spacing: 8) {
                         ChoiceChip(title: L("System"), isSelected: model.language == .system) { model.language = .system }
@@ -334,5 +336,63 @@ struct RemindersSection: View {
 
     private func minutes(of date: Date) -> Int {
         calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
+    }
+}
+
+/// The timer's Pomodoro mode: block lengths, breaks and the alert when a block ends.
+struct FocusSection: View {
+    @ObservedObject var settings: PhoneFocusSettings
+    let alerts: FocusBackgroundAlerts
+
+    var body: some View {
+        Section(L("Focus")) {
+            Toggle(isOn: $settings.pomodoroEnabled) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("Pomodoro")).font(.system(size: 16, weight: .medium, design: .rounded))
+                    Text(L("Timed blocks with breaks, instead of a free stopwatch"))
+                        .font(.system(size: 12, design: .rounded)).foregroundStyle(Theme.tertiaryText)
+                }
+            }
+            .tint(Theme.mint)
+            .listRowBackground(Theme.surface)
+
+            if settings.pomodoroEnabled {
+                stepper(L("Focus block"), value: $settings.focusMinutes, range: 5...120, step: 5)
+                stepper(L("Short break"), value: $settings.shortBreakMinutes, range: 1...30, step: 1)
+                stepper(L("Long break"), value: $settings.longBreakMinutes, range: 5...60, step: 5)
+                Stepper(value: $settings.pomodoroRounds, in: 2...8) {
+                    HStack {
+                        Text(L("Blocks per round"))
+                        Spacer()
+                        Text("\(settings.pomodoroRounds)").monospacedDigit().foregroundStyle(Theme.secondaryText)
+                    }
+                }
+                .listRowBackground(Theme.surface)
+
+                Toggle(L("Notification when a block ends"), isOn: Binding(
+                    get: { settings.focusNotifications },
+                    set: { value in
+                        if value {
+                            Task { settings.focusNotifications = await alerts.requestAuthorization() }
+                        } else {
+                            settings.focusNotifications = false
+                        }
+                    }
+                ))
+                .tint(Theme.mint)
+                .listRowBackground(Theme.surface)
+            }
+        }
+    }
+
+    private func stepper(_ title: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int) -> some View {
+        Stepper(value: value, in: range, step: step) {
+            HStack {
+                Text(title)
+                Spacer()
+                Text("\(value.wrappedValue) min").monospacedDigit().foregroundStyle(Theme.secondaryText)
+            }
+        }
+        .listRowBackground(Theme.surface)
     }
 }

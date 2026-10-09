@@ -35,6 +35,17 @@ enum DemoData {
         store.updateTaskStatus(id: mail.id, newStatus: .done)
         _ = store.addHabit(title: "Palestra", schedule: .custom(days: [2, 4, 6]), startDate: store.dateService.today)
         _ = add("Prenotare il dentista", tags: ["personale"], offset: 1)
+
+        // A few finished days behind us, so the streak, the heatmap and the score curve have something to show.
+        let calendar = store.dateService.currentCalendar
+        for back in 1...5 {
+            let day = store.dateService.normalize(calendar.date(byAdding: .day, value: -back, to: store.dateService.today)!)
+            for title in ["Obiettivo A", "Obiettivo B"] {
+                if let task = store.addTask(title: title, for: day) {
+                    if back != 3 { store.updateTaskStatus(id: task.id, newStatus: .done) }
+                }
+            }
+        }
     }
 }
 #endif
