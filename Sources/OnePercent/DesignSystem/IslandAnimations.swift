@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Centralized animation curves per ONE_PERCENT_SPEC.md (Section 10.8) and bubble droplet physics
 enum IslandAnimations {
@@ -27,5 +28,37 @@ enum IslandAnimations {
 
     static var progressTransition: Animation {
         .easeInOut(duration: progressDuration)
+    }
+
+    /// Checkmark pop. Slightly under-damped so completing a goal has a little snap.
+    static var checkSpring: Animation {
+        .spring(response: 0.32, dampingFraction: 0.62)
+    }
+
+    /// Progress fill. Settles without wobble; the numerals do the "playful" work.
+    static var progressSpring: Animation {
+        .spring(response: 0.5, dampingFraction: 0.86)
+    }
+
+    /// Hover / press colour changes. Frequent, so short and ease-out.
+    static var hoverFade: Animation {
+        .easeOut(duration: 0.12)
+    }
+
+    static var pressFade: Animation {
+        .easeOut(duration: 0.1)
+    }
+}
+
+/// Trackpad haptics. No-ops on hardware without a Force Touch trackpad.
+enum IslandHaptics {
+    @MainActor
+    static func tick() {
+        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+    }
+
+    @MainActor
+    static func success() {
+        NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @MainActor
 final class IslandPresentationState: ObservableObject {
@@ -25,9 +26,21 @@ struct IslandView: View {
     @State private var snapshotFrames: [UUID: CGRect] = [:]
     @State private var snapshotTasks: [TaskItem] = []
 
+    /// 0 -> 1 glow around the card when the last open goal of the day is closed.
+    @State private var celebrationGlow: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // Scroll cues: native indicator is hidden (it covered the status chips), so the list fades at
+    // whichever edge still has rows and draws a slim thumb in the card's right gutter instead.
+    @State private var listViewportHeight: CGFloat = 0
+    @State private var listContentHeight: CGFloat = 0
+    @State private var listScrollOffset: CGFloat = 0
+    @State private var isScrollThumbActive = false
+    @State private var scrollThumbToken = 0
+
     private let maxVisibleTasksCount = 5
-    private let taskRowApproxHeight: CGFloat = 28
-    private let rowSpacing: CGFloat = 2.5
+    private let taskRowApproxHeight: CGFloat = IslandMetrics.rowHeight
+    private let rowSpacing: CGFloat = IslandMetrics.rowSpacing
     @Namespace private var taskListNamespace
 
     var body: some View {
@@ -66,14 +79,15 @@ struct IslandView: View {
 
     private var islandCard: some View {
         VStack(alignment: .leading, spacing: IslandMetrics.standard) {
-            // Header with wordmark, arrow navigation, and add goal button
-            IslandHeaderView(
-                store: store,
-                isAddingTask: $isAddingTask
-            )
+            // Hero progress, arrow navigation, and add goal button, with the fill bar tucked underneath
+            VStack(alignment: .leading, spacing: 9) {
+                IslandHeaderView(
+                    store: store,
+                    isAddingTask: $isAddingTask
+                )
 
-            // Daily Progress
-            DailyProgressView(store: store)
+                DailyProgressView(store: store)
+            }
 
             // Discrete error feedback if persistence encountered an error (Section 5.4)
             if let errorMessage = store.lastErrorMessage {
@@ -110,18 +124,9 @@ struct IslandView: View {
                 .padding(.vertical, 4)
                 .background(
                     RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
-                        .fill(IslandPalette.secondarySurface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
-                        .stroke(IslandPalette.border.opacity(0.8), lineWidth: 0.5)
+                        .fill(IslandPalette.destructiveAccent.opacity(0.10))
                 )
             }
-
-            // Hairline separator
-            Rectangle()
-                .fill(IslandPalette.border.opacity(0.8))
-                .frame(height: 1)
 
             // Inline Add Goal Editor
             if isAddingTask {
@@ -138,7 +143,12 @@ struct IslandView: View {
                         }
                     }
                 )
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(
+                    .asymmetric(
+                        insertion: .opacity.combined(with: .scale(scale: 0.97, anchor: .top)),
+                        removal: .opacity
+                    )
+                )
             }
 
             // Task List or Empty State
@@ -151,7 +161,7 @@ struct IslandView: View {
                 .frame(maxWidth: .infinity, minHeight: scrollListMaxHeight)
                 .transition(.opacity)
             } else if !store.selectedDateTasks.isEmpty {
-                ScrollView(.vertical, showsIndicators: true) {
+                ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: rowSpacing) {
                         ForEach(Array(store.selectedDateTasks.enumerated()), id: \.element.id) { index, task in
                             let isBeingDragged = (draggedTaskID == task.id)
@@ -160,7 +170,12 @@ struct IslandView: View {
                             TaskRowView(
                                 task: task,
                                 onUpdateStatus: { newStatus in
+                                    let before = store.currentProgress
                                     store.updateTaskStatus(id: task.id, newStatus: newStatus)
+                                    let after = store.currentProgress
+                                    if before.ratio < 1, after.ratio >= 1, after.totalCount > 0 {
+                                        celebrate()
+                                    }
                                 },
                                 onUpdateTitle: { newTitle in
                                     store.updateTaskTitle(id: task.id, newTitle: newTitle)
@@ -188,7 +203,8 @@ struct IslandView: View {
                                 },
                                 onEditingChanged: { isEditing in
                                     onInteractionChange?(isEditing)
-                                }
+                                },
+                                isLifted: isBeingDragged
                             )
                             .matchedGeometryEffect(id: task.id, in: taskListNamespace)
                             .background(
@@ -201,39 +217,169 @@ struct IslandView: View {
                             )
                             .offset(y: currentOffset)
                             .zIndex(isBeingDragged ? 100 : (store.autoSlidingTaskID == task.id ? 20 : 1))
-                            .scaleEffect(isBeingDragged ? 1.02 : (store.autoSlidingTaskID == task.id ? 1.01 : 1.0))
+                            .scaleEffect(isBeingDragged ? 1.015 : (store.autoSlidingTaskID == task.id ? 1.01 : 1.0))
                             .shadow(
-                                color: isBeingDragged ? Color.black.opacity(0.4) : (store.autoSlidingTaskID == task.id ? Color.black.opacity(0.25) : Color.clear),
-                                radius: isBeingDragged ? 4 : (store.autoSlidingTaskID == task.id ? 3 : 0),
+                                color: isBeingDragged ? Color.black.opacity(0.45) : (store.autoSlidingTaskID == task.id ? Color.black.opacity(0.25) : Color.clear),
+                                radius: isBeingDragged ? 10 : (store.autoSlidingTaskID == task.id ? 4 : 0),
                                 x: 0,
-                                y: isBeingDragged ? 2 : (store.autoSlidingTaskID == task.id ? 1 : 0)
+                                y: isBeingDragged ? 4 : (store.autoSlidingTaskID == task.id ? 1 : 0)
                             )
                             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: targetIndex)
                         }
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 1)
                     .animation(.spring(response: 0.55, dampingFraction: 0.82), value: store.selectedDateTasks)
+                    .background(
+                        ScrollMetricsReader { offset, contentHeight, viewportHeight in
+                            listScrollOffset = offset
+                            listContentHeight = contentHeight
+                            listViewportHeight = viewportHeight
+                            pulseScrollThumb()
+                        }
+                    )
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .coordinateSpace(name: "TaskList")
                 .onPreferenceChange(TaskRowFramePreferenceKey.self) { preferences in
                     self.rowFrames = preferences
                 }
-                .frame(maxHeight: scrollListMaxHeight)
+                // Fill whatever the card has left: with more than five goals the sixth peeks in
+                // under the fade, which is what tells you the list continues.
+                .frame(maxHeight: .infinity)
+                .mask { listEdgeMask }
+                .overlay(alignment: .topTrailing) { scrollThumb }
+                .animation(IslandAnimations.hoverFade, value: canScrollUp)
+                .animation(IslandAnimations.hoverFade, value: canScrollDown)
             }
         }
-        .padding(IslandMetrics.mainPadding)
+        .padding(.top, IslandMetrics.mainPadding)
+        .padding(.horizontal, IslandMetrics.mainPadding)
+        .padding(.bottom, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(IslandPalette.background)
-        .clipShape(RoundedRectangle(cornerRadius: IslandMetrics.cornerRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: IslandMetrics.cornerRadius, style: .continuous)
-                .stroke(IslandPalette.border.opacity(0.6), lineWidth: 1)
+        .background(cardShape.fill(cardFill))
+        .clipShape(cardShape)
+        .overlay { cardShape.strokeBorder(cardRim, lineWidth: 1) }
+        .overlay { celebrationRim }
+        // Ultra-diffuse lift; stays inside the window's 24pt headroom so it is never clipped.
+        .shadow(color: Color.black.opacity(0.38), radius: 14, x: 0, y: 8)
+    }
+
+    // MARK: - Card chrome
+
+    private var cardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: IslandMetrics.cornerRadius, style: .continuous)
+    }
+
+    /// Pure black at the top so the panel fuses with the physical notch, lifting slightly towards the bottom.
+    private var cardFill: LinearGradient {
+        LinearGradient(
+            colors: [IslandPalette.panelTop, IslandPalette.panelBottom],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    /// Rim light that fades out at the very top so no seam shows where the card meets the notch.
+    private var cardRim: LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: Color.white.opacity(0.0), location: 0.0),
+                .init(color: Color.white.opacity(0.10), location: 0.28),
+                .init(color: Color.white.opacity(0.05), location: 1.0)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    private var celebrationRim: some View {
+        cardShape
+            .strokeBorder(IslandPalette.completedAccent, lineWidth: 1.5)
+            .shadow(color: IslandPalette.completedAccent.opacity(0.55), radius: 10)
+            .opacity(celebrationGlow)
+            .allowsHitTesting(false)
+    }
+
+    /// Single, short glow when the last open goal of the day is closed.
+    private func celebrate() {
+        IslandHaptics.success()
+        guard !reduceMotion else { return }
+        withAnimation(.easeOut(duration: 0.25)) { celebrationGlow = 1 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
+            withAnimation(.easeOut(duration: 0.9)) { celebrationGlow = 0 }
+        }
+    }
+
+    // MARK: - Scroll cues
+
+    private var listOverflows: Bool {
+        listContentHeight > listViewportHeight + 1
+    }
+
+    private var canScrollUp: Bool {
+        listOverflows && listScrollOffset > 1
+    }
+
+    private var canScrollDown: Bool {
+        listOverflows && listScrollOffset < listContentHeight - listViewportHeight - 1
+    }
+
+    /// Soft fade on each edge that still has rows beyond it; solid when that edge is flush.
+    private var listEdgeMask: some View {
+        VStack(spacing: 0) {
+            listEdgeFade(visible: canScrollUp, leading: true)
+            Color.black
+            listEdgeFade(visible: canScrollDown, leading: false)
+        }
+    }
+
+    private func listEdgeFade(visible: Bool, leading: Bool) -> some View {
+        ZStack {
+            Color.black.opacity(visible ? 0 : 1)
+            LinearGradient(
+                colors: leading ? [.clear, .black] : [.black, .clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .opacity(visible ? 1 : 0)
+        }
+        .frame(height: 16)
+    }
+
+    /// 2.5pt thumb parked in the 16pt card gutter, so it can never sit on top of a status chip.
+    @ViewBuilder
+    private var scrollThumb: some View {
+        if listOverflows, listViewportHeight > 0 {
+            let thumbHeight = max(18, listViewportHeight * listViewportHeight / listContentHeight)
+            let travel = max(0, listViewportHeight - thumbHeight)
+            let maxOffset = max(1, listContentHeight - listViewportHeight)
+            let progress = min(max(listScrollOffset / maxOffset, 0), 1)
+
+            Capsule()
+                .fill(Color.white.opacity(isScrollThumbActive ? 0.42 : 0.16))
+                .frame(width: 2.5, height: thumbHeight)
+                .offset(x: 9, y: progress * travel)
+                .animation(IslandAnimations.hoverFade, value: isScrollThumbActive)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func pulseScrollThumb() {
+        scrollThumbToken += 1
+        let token = scrollThumbToken
+        isScrollThumbActive = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            if token == scrollThumbToken {
+                isScrollThumbActive = false
+            }
         }
     }
 
     private var scrollListMaxHeight: CGFloat {
-        CGFloat(maxVisibleTasksCount) * taskRowApproxHeight + 8
+        CGFloat(maxVisibleTasksCount) * taskRowApproxHeight
+            + CGFloat(maxVisibleTasksCount - 1) * rowSpacing
+            + 2
     }
 
     private var desiredPanelHeight: CGFloat {
@@ -355,5 +501,82 @@ private struct TaskRowFramePreferenceKey: PreferenceKey {
     static var defaultValue: [UUID: CGRect] = [:]
     static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
         value.merge(nextValue()) { _, new in new }
+    }
+}
+
+/// Reports scroll offset / content height / viewport height of the enclosing `NSScrollView`.
+/// SwiftUI on macOS 14 has no scroll-geometry API, so this observes the clip view directly.
+private struct ScrollMetricsReader: NSViewRepresentable {
+    var onChange: (_ offset: CGFloat, _ contentHeight: CGFloat, _ viewportHeight: CGFloat) -> Void
+
+    func makeNSView(context: Context) -> ScrollMetricsProbeView {
+        let view = ScrollMetricsProbeView()
+        view.onChange = onChange
+        return view
+    }
+
+    func updateNSView(_ nsView: ScrollMetricsProbeView, context: Context) {
+        nsView.onChange = onChange
+        nsView.report()
+    }
+}
+
+private final class ScrollMetricsProbeView: NSView {
+    var onChange: ((CGFloat, CGFloat, CGFloat) -> Void)?
+    private var observers: [NSObjectProtocol] = []
+    private var lastReport: (CGFloat, CGFloat, CGFloat) = (-1, -1, -1)
+
+    deinit {
+        observers.forEach { NotificationCenter.default.removeObserver($0) }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        attach()
+    }
+
+    private func attach() {
+        observers.forEach { NotificationCenter.default.removeObserver($0) }
+        observers.removeAll()
+
+        guard let scrollView = enclosingScrollView else {
+            // The hosting layer may not be wired up yet on the first pass.
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.window != nil, self.enclosingScrollView != nil else { return }
+                self.attach()
+            }
+            return
+        }
+
+        scrollView.hasVerticalScroller = false
+        let clipView = scrollView.contentView
+        clipView.postsBoundsChangedNotifications = true
+        observers.append(
+            NotificationCenter.default.addObserver(
+                forName: NSView.boundsDidChangeNotification, object: clipView, queue: .main
+            ) { [weak self] _ in self?.report() }
+        )
+        if let documentView = scrollView.documentView {
+            documentView.postsFrameChangedNotifications = true
+            observers.append(
+                NotificationCenter.default.addObserver(
+                    forName: NSView.frameDidChangeNotification, object: documentView, queue: .main
+                ) { [weak self] _ in self?.report() }
+            )
+        }
+        report()
+    }
+
+    func report() {
+        guard let scrollView = enclosingScrollView, let documentView = scrollView.documentView else { return }
+        let viewport = scrollView.contentView.bounds.height
+        let content = documentView.frame.height
+        let visible = scrollView.documentVisibleRect
+        let offset = documentView.isFlipped ? visible.minY : content - visible.maxY
+
+        let next = (offset.rounded(), content.rounded(), viewport.rounded())
+        guard next != lastReport else { return }
+        lastReport = next
+        onChange?(next.0, next.1, next.2)
     }
 }

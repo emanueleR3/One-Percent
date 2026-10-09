@@ -1,42 +1,32 @@
 import SwiftUI
 
-/// Daily progress bar and completion summary per ONE_PERCENT_SPEC.md (Section 8, 11.2)
+/// Thin daily progress bar per ONE_PERCENT_SPEC.md (Section 8, 11.2). The numbers live in
+/// `ProgressHeroView`; this view is only the glanceable fill.
 struct DailyProgressView: View {
     @ObservedObject var store: TaskStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: IslandMetrics.micro) {
-            HStack {
-                Text(store.dateService.formatProgressHeader(for: store.selectedDate))
-                    .font(IslandTypography.caption)
-                    .foregroundStyle(IslandPalette.tertiaryText)
-                    .accessibilityHidden(true)
+        let ratio = CGFloat(store.currentProgress.ratio)
 
-                Spacer(minLength: 8)
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(IslandPalette.track)
 
-                Text(store.currentProgress.summaryText)
-                    .font(IslandTypography.progressIndicator)
-                    .foregroundStyle(IslandPalette.secondaryText)
-            }
-
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(IslandPalette.secondarySurface)
-                        .frame(height: 3.5)
-
-                    Capsule()
-                        .fill(IslandPalette.completedAccent)
-                        .frame(
-                            width: max(0, min(geometry.size.width, geometry.size.width * CGFloat(store.currentProgress.ratio))),
-                            height: 3.5
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [IslandPalette.completedAccent, IslandPalette.completedHighlight],
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
-                        .animation(IslandAnimations.progressTransition, value: store.currentProgress.ratio)
-                }
+                    )
+                    .frame(width: max(0, min(geometry.size.width, geometry.size.width * ratio)))
+                    .shadow(color: IslandPalette.completedAccent.opacity(ratio > 0 ? 0.45 : 0), radius: 5)
+                    .animation(IslandAnimations.progressSpring, value: ratio)
             }
-            .frame(height: 3.5)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(store.dateService.formatProgressHeader(for: store.selectedDate)), \(store.currentProgress.summaryText)")
+        .frame(height: IslandMetrics.progressBarHeight)
+        .accessibilityHidden(true)
     }
 }

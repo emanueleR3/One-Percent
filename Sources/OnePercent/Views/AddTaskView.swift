@@ -12,12 +12,13 @@ struct AddTaskView: View {
 
     var body: some View {
         HStack(spacing: IslandMetrics.compact) {
-            Image(systemName: "plus.circle")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(IslandPalette.secondaryText)
+            Image(systemName: "plus")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(isFieldFocused ? IslandPalette.completedAccent : IslandPalette.tertiaryText)
+                .frame(width: 17, height: 17)
                 .accessibilityHidden(true)
 
-            TextField("Add a goal for this day...", text: $title)
+            TextField("Add a goal for this day", text: $title)
                 .textFieldStyle(.plain)
                 .font(IslandTypography.taskTitle)
                 .foregroundStyle(IslandPalette.primaryText)
@@ -30,43 +31,40 @@ struct AddTaskView: View {
                 }
                 .accessibilityLabel("New goal title")
 
-            // Submit Button
+            // Return keycap doubles as the submit button; it lights up once there is something to add.
             Button {
                 submit()
             } label: {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(trimmedTitle.isEmpty ? IslandPalette.tertiaryText : IslandPalette.completedAccent)
-                    .frame(width: 22, height: 22)
+                KeycapView(label: "↵", isActive: !trimmedTitle.isEmpty)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressScaleButtonStyle(scale: 0.92))
             .disabled(trimmedTitle.isEmpty)
             .help("Add goal (Return)")
             .accessibilityLabel("Add goal")
 
-            // Cancel Button
             Button {
                 onCancel()
             } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(IslandPalette.secondaryText)
-                    .frame(width: 22, height: 22)
+                KeycapView(label: "esc")
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressScaleButtonStyle(scale: 0.92))
             .help("Cancel (Esc)")
             .accessibilityLabel("Cancel adding goal")
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 4)
+        .frame(height: 34)
         .background(
             RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
-                .fill(IslandPalette.primarySurface)
+                .fill(IslandPalette.restFill)
         )
         .overlay(
             RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
-                .stroke(IslandPalette.border, lineWidth: 1)
+                .strokeBorder(
+                    isFieldFocused ? IslandPalette.completedAccent.opacity(0.5) : IslandPalette.hairline,
+                    lineWidth: 1
+                )
         )
+        .animation(IslandAnimations.hoverFade, value: isFieldFocused)
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 isFieldFocused = true

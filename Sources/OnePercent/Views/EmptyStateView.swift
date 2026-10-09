@@ -4,8 +4,23 @@ import SwiftUI
 struct EmptyStateView: View {
     var onAddGoal: () -> Void
 
+    @State private var isButtonHovered = false
+
     var body: some View {
-        VStack(spacing: IslandMetrics.compact) {
+        VStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .strokeBorder(
+                        IslandPalette.tertiaryText.opacity(0.55),
+                        style: StrokeStyle(lineWidth: 1.2, dash: [2.6, 3.6])
+                    )
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(IslandPalette.tertiaryText)
+            }
+            .frame(width: 30, height: 30)
+            .accessibilityHidden(true)
+
             VStack(spacing: 2) {
                 Text("A fresh start.")
                     .font(IslandTypography.sectionTitle)
@@ -13,35 +28,34 @@ struct EmptyStateView: View {
 
                 Text("Add your first goal.")
                     .font(IslandTypography.secondaryMetadata)
-                    .foregroundStyle(IslandPalette.secondaryText)
+                    .foregroundStyle(IslandPalette.tertiaryText)
             }
 
             Button {
                 onAddGoal()
             } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 10, weight: .semibold))
-                    Text("Add Goal")
+                HStack(spacing: 6) {
+                    Text("Add goal")
                         .font(IslandTypography.statusLabel)
+                        .foregroundStyle(IslandPalette.primaryText)
+                    KeycapView(label: "⌘N")
                 }
-                .foregroundStyle(IslandPalette.primaryText)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
+                .padding(.leading, 11)
+                .padding(.trailing, 7)
+                .frame(height: 26)
                 .background(
-                    RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
-                        .fill(IslandPalette.secondarySurface)
+                    RoundedRectangle(cornerRadius: IslandMetrics.controlCornerRadius, style: .continuous)
+                        .fill(isButtonHovered ? IslandPalette.hoverFill : IslandPalette.restFill)
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
-                        .stroke(IslandPalette.border, lineWidth: 0.5)
-                )
+                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressScaleButtonStyle(scale: 0.96))
+            .onHover { isButtonHovered = $0 }
+            .animation(IslandAnimations.hoverFade, value: isButtonHovered)
             .help("Add your first goal for this day")
             .accessibilityLabel("Add your first goal")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.vertical, 10)
+        .padding(.vertical, 6)
     }
 }

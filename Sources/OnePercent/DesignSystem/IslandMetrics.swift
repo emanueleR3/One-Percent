@@ -12,6 +12,12 @@ enum IslandMetrics {
     static let cornerRadius: CGFloat = 24
     static let rowCornerRadius: CGFloat = 10
     static let badgeCornerRadius: CGFloat = 6
+    static let controlCornerRadius: CGFloat = 8
+
+    /// Minimum height of a single goal row. Drag-to-reorder math is derived from this value.
+    static let rowHeight: CGFloat = 30
+    static let rowSpacing: CGFloat = 2
+    static let progressBarHeight: CGFloat = 4
 
     static let minPanelHeight: CGFloat = 160
     static let maxPanelHeight: CGFloat = 420

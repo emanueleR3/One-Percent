@@ -17,4 +17,28 @@ enum IslandPalette {
     static let inProgressAccent = Color(red: 231.0 / 255.0, green: 198.0 / 255.0, blue: 110.0 / 255.0)
     static let deferredAccent = Color(red: 183.0 / 255.0, green: 183.0 / 255.0, blue: 201.0 / 255.0)
     static let destructiveAccent = Color(red: 255.0 / 255.0, green: 105.0 / 255.0, blue: 97.0 / 255.0)
+
+    // MARK: - Surface tokens
+    //
+    // The panel melts into the physical notch, so it starts at pure black and only lifts a
+    // few percent towards the bottom. Everything else is a translucent white wash on top of
+    // it, which keeps hover / press states consistent without a bespoke color per surface.
+
+    static let panelTop = Color.black
+    static let panelBottom = Color(red: 12.0 / 255.0, green: 12.0 / 255.0, blue: 13.0 / 255.0)
+
+    /// 1pt structural lines and keycap outlines.
+    static let hairline = Color.white.opacity(0.07)
+    static let hairlineStrong = Color.white.opacity(0.13)
+
+    /// Resting / hover / pressed fills for interactive surfaces.
+    static let restFill = Color.white.opacity(0.045)
+    static let hoverFill = Color.white.opacity(0.07)
+    static let pressedFill = Color.white.opacity(0.11)
+
+    /// Track behind the progress bar.
+    static let track = Color.white.opacity(0.08)
+
+    /// Slightly lighter mint used for the leading highlight of the progress fill.
+    static let completedHighlight = Color(red: 190.0 / 255.0, green: 240.0 / 255.0, blue: 205.0 / 255.0)
 }

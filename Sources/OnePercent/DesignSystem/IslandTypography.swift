@@ -9,4 +9,11 @@ enum IslandTypography {
     static let secondaryMetadata = Font.system(size: 11, weight: .regular)
     static let progressIndicator = Font.system(size: 11.5, weight: .medium)
     static let caption = Font.system(size: 10, weight: .regular)
+
+    /// Large rounded percentage that anchors the header.
+    static let heroNumber = Font.system(size: 30, weight: .semibold, design: .rounded)
+    static let heroUnit = Font.system(size: 14, weight: .semibold, design: .rounded)
+    static let heroHeadline = Font.system(size: 12.5, weight: .medium)
+    static let chip = Font.system(size: 10.5, weight: .medium)
+    static let keycap = Font.system(size: 9.5, weight: .medium, design: .monospaced)
 }

@@ -10,8 +10,11 @@ struct TaskRowView: View {
     var onDragChanged: ((CGFloat) -> Void)? = nil
     var onDragEnded: (() -> Void)? = nil
     var onEditingChanged: ((Bool) -> Void)? = nil
+    /// True while the row is being dragged to reorder; draws the raised surface.
+    var isLifted: Bool = false
 
     @State private var isHovered = false
+    @State private var isCheckHovered = false
     @State private var isHandleHovered = false
     @State private var isDraggingHandle = false
     @State private var isEditing = false
@@ -20,146 +23,18 @@ struct TaskRowView: View {
     @State private var keyMonitor: Any?
 
     var body: some View {
-        HStack(spacing: IslandMetrics.compact) {
-            // 1. Reorder Handle with 3 horizontal lines and immediate hand cursor (BEFORE the check circle)
-            ZStack {
-                HandCursorRepresentable(cursor: isDraggingHandle ? .closedHand : .openHand)
-                    .allowsHitTesting(false)
-
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(isHandleHovered || isDraggingHandle ? IslandPalette.primaryText : IslandPalette.tertiaryText.opacity(0.6))
-            }
-            .frame(width: 18, height: 24)
-            .contentShape(Rectangle())
-            .onHover { hovering in
-                isHandleHovered = hovering
-                if hovering {
-                    NSCursor.openHand.set()
-                } else if !isDraggingHandle {
-                    NSCursor.arrow.set()
-                }
-            }
-            .highPriorityGesture(
-                DragGesture(minimumDistance: 1, coordinateSpace: .named("TaskList"))
-                    .onChanged { value in
-                        if !isDraggingHandle && !isEditing {
-                            isDraggingHandle = true
-                            NSCursor.closedHand.set()
-                            onDragStarted?()
-                        }
-                        if !isEditing {
-                            onDragChanged?(value.translation.height)
-                        }
-                    }
-                    .onEnded { _ in
-                        if !isEditing {
-                            isDraggingHandle = false
-                            if isHandleHovered {
-                                NSCursor.openHand.set()
-                            } else {
-                                NSCursor.arrow.set()
-                            }
-                            onDragEnded?()
-                        }
-                    }
-            )
-            .help("Drag to reorder goal")
-            .accessibilityLabel("Reorder \(task.title)")
-
-            // 2. Status Icon Button (Check circle)
-            Button {
-                withAnimation(IslandAnimations.statusTransition) {
-                    toggleQuickStatus()
-                }
-            } label: {
-                Image(systemName: task.status.iconName)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(task.status.color)
-                    .frame(width: 22, height: 22)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(quickStatusAccessibilityLabel)
-            .help(quickStatusTooltip)
-
-            // 3. Title or Inline Editor (Double click to edit)
-            if isEditing {
-                TextField("", text: $editingTitle)
-                    .textFieldStyle(.plain)
-                    .font(IslandTypography.taskTitle)
-                    .foregroundStyle(IslandPalette.primaryText)
-                    .focused($isFieldFocused)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(IslandPalette.secondarySurface)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .stroke(IslandPalette.completedAccent.opacity(0.8), lineWidth: 1)
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .onSubmit {
-                        commitEditing()
-                    }
-                    .onExitCommand {
-                        cancelEditing()
-                    }
-                    .onChange(of: isFieldFocused) { _, focused in
-                        if !focused && isEditing {
-                            commitEditing()
-                        }
-                    }
-            } else {
-                Text(task.title)
-                    .font(IslandTypography.taskTitle)
-                    .foregroundStyle(titleColor)
-                    .strikethrough(task.status == .done, color: IslandPalette.secondaryText.opacity(0.6))
-                    .lineLimit(nil)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                    .onTapGesture(count: 2) {
-                        startEditing()
-                    }
-                    .help("Double click to edit title")
-                    .accessibilityLabel(accessibilityDescription)
-            }
-
-            // 4. Status Badge with Contextual Menu (pinned to trailing edge, fixed size)
-            TaskStatusMenu(
-                currentStatus: task.status,
-                onSelectStatus: onUpdateStatus,
-                onDelete: onDelete
-            ) {
-                HStack(spacing: 3) {
-                    Text(task.status.displayName)
-                        .font(IslandTypography.statusLabel)
-                        .foregroundStyle(task.status.color)
-
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 8, weight: .medium))
-                        .foregroundStyle(task.status.color.opacity(0.5))
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2.5)
-                .background(IslandPalette.secondarySurface, in: RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
-                        .stroke(IslandPalette.border.opacity(0.6), lineWidth: 0.5)
-                }
-            }
-            .fixedSize()
-            .help("Change status or defer to tomorrow")
-            .accessibilityLabel("Change status for \(task.title). Current: \(task.status.displayName)")
+        HStack(spacing: 6) {
+            gripHandle
+            statusButton
+            titleView
+            statusControl
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 4)
         .padding(.vertical, 3)
-        .background(
-            RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
-                .fill(isHovered ? IslandPalette.primarySurface.opacity(0.7) : Color.clear)
-        )
+        .frame(minHeight: IslandMetrics.rowHeight)
+        .background(rowBackground)
+        .animation(IslandAnimations.hoverFade, value: isHovered)
+        .animation(IslandAnimations.hoverFade, value: isLifted)
         .onHover { hovering in
             isHovered = hovering
         }
@@ -181,6 +56,186 @@ struct TaskRowView: View {
                 onEditingChanged?(false)
             }
         }
+    }
+
+    // MARK: - Subviews
+
+    private var rowBackground: some View {
+        RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
+            .fill(isLifted ? IslandPalette.elevatedSurface : (isHovered ? IslandPalette.restFill : Color.clear))
+            .overlay {
+                if isLifted {
+                    RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
+                        .strokeBorder(IslandPalette.hairlineStrong, lineWidth: 0.5)
+                }
+            }
+    }
+
+    /// Reorder grip. Invisible until the row is hovered so a resting list reads as plain text.
+    private var gripHandle: some View {
+        ZStack {
+            HandCursorRepresentable(cursor: isDraggingHandle ? .closedHand : .openHand)
+                .allowsHitTesting(false)
+
+            GripDots()
+                .foregroundStyle(isHandleHovered || isDraggingHandle ? IslandPalette.primaryText : IslandPalette.tertiaryText)
+                .opacity(gripOpacity)
+        }
+        .frame(width: 12, height: 24)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            isHandleHovered = hovering
+            if hovering {
+                NSCursor.openHand.set()
+            } else if !isDraggingHandle {
+                NSCursor.arrow.set()
+            }
+        }
+        .highPriorityGesture(
+            DragGesture(minimumDistance: 1, coordinateSpace: .named("TaskList"))
+                .onChanged { value in
+                    if !isDraggingHandle && !isEditing {
+                        isDraggingHandle = true
+                        NSCursor.closedHand.set()
+                        onDragStarted?()
+                    }
+                    if !isEditing {
+                        onDragChanged?(value.translation.height)
+                    }
+                }
+                .onEnded { _ in
+                    if !isEditing {
+                        isDraggingHandle = false
+                        if isHandleHovered {
+                            NSCursor.openHand.set()
+                        } else {
+                            NSCursor.arrow.set()
+                        }
+                        onDragEnded?()
+                    }
+                }
+        )
+        .animation(IslandAnimations.hoverFade, value: gripOpacity)
+        .help("Drag to reorder goal")
+        .accessibilityLabel("Reorder \(task.title)")
+    }
+
+    /// Chips for active states are always on; the to do / done ellipsis only appears on hover.
+    private var showsStatusControl: Bool {
+        switch task.status {
+        case .inProgress, .deferred: return true
+        case .todo, .done: return isHovered
+        }
+    }
+
+    private var gripOpacity: Double {
+        if isDraggingHandle || isHandleHovered { return 1 }
+        return isHovered ? 0.5 : 0
+    }
+
+    private var statusButton: some View {
+        Button {
+            let isCompleting = task.status == .todo || task.status == .inProgress
+            withAnimation(IslandAnimations.statusTransition) {
+                toggleQuickStatus()
+            }
+            if isCompleting { IslandHaptics.tick() }
+        } label: {
+            StatusMarkView(status: task.status, isHovered: isCheckHovered)
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScaleButtonStyle(scale: 0.84))
+        .onHover { isCheckHovered = $0 }
+        .accessibilityLabel(quickStatusAccessibilityLabel)
+        .help(quickStatusTooltip)
+    }
+
+    @ViewBuilder
+    private var titleView: some View {
+        if isEditing {
+            TextField("", text: $editingTitle)
+                .textFieldStyle(.plain)
+                .font(IslandTypography.taskTitle)
+                .foregroundStyle(IslandPalette.primaryText)
+                .focused($isFieldFocused)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(IslandPalette.hoverFill)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .strokeBorder(IslandPalette.completedAccent.opacity(0.55), lineWidth: 1)
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onSubmit {
+                    commitEditing()
+                }
+                .onExitCommand {
+                    cancelEditing()
+                }
+                .onChange(of: isFieldFocused) { _, focused in
+                    if !focused && isEditing {
+                        commitEditing()
+                    }
+                }
+        } else {
+            Text(task.title)
+                .font(IslandTypography.taskTitle)
+                .foregroundStyle(titleColor)
+                .strikethrough(task.status == .done, color: IslandPalette.tertiaryText)
+                .lineLimit(nil)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .animation(IslandAnimations.statusTransition, value: task.status)
+                .onTapGesture(count: 2) {
+                    startEditing()
+                }
+                .help("Double click to edit title")
+                .accessibilityLabel(accessibilityDescription)
+        }
+    }
+
+    /// Trailing status control. Active states (in progress / tomorrow) keep a tinted chip so they
+    /// stay scannable; to do / done only reveal an ellipsis on hover.
+    private var statusControl: some View {
+        TaskStatusMenu(
+            currentStatus: task.status,
+            onSelectStatus: onUpdateStatus,
+            onDelete: onDelete
+        ) {
+            switch task.status {
+            case .inProgress, .deferred:
+                Text(task.status.displayName)
+                    .font(IslandTypography.chip)
+                    .foregroundStyle(task.status.color)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(
+                        RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
+                            .fill(task.status.color.opacity(0.12))
+                    )
+            case .todo, .done:
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(IslandPalette.secondaryText)
+                    .frame(width: 26, height: 22)
+                    .background(
+                        RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
+                            .fill(isHovered ? IslandPalette.restFill : Color.clear)
+                    )
+            }
+        }
+        .fixedSize()
+        // Applied outside the Menu: its AppKit-backed label ignores opacity set on the label itself.
+        .opacity(showsStatusControl ? 1 : 0)
+        .allowsHitTesting(showsStatusControl)
+        .animation(IslandAnimations.hoverFade, value: showsStatusControl)
+        .help("Change status or defer to tomorrow")
+        .accessibilityLabel("Change status for \(task.title). Current: \(task.status.displayName)")
     }
 
     private func startEditing() {
@@ -233,7 +288,7 @@ struct TaskRowView: View {
     private var titleColor: Color {
         switch task.status {
         case .done:
-            return IslandPalette.secondaryText
+            return IslandPalette.secondaryText.opacity(0.7)
         case .deferred:
             return IslandPalette.tertiaryText
         case .todo, .inProgress:
@@ -323,5 +378,19 @@ private final class HandCursorNSView: NSView {
 
     override func cursorUpdate(with event: NSEvent) {
         cursor.set()
+    }
+}
+
+/// 2 x 3 dot grip, drawn rather than an SF Symbol so the weight matches the rest of the row.
+private struct GripDots: View {
+    var body: some View {
+        VStack(spacing: 2.5) {
+            ForEach(0..<3, id: \.self) { _ in
+                HStack(spacing: 2.5) {
+                    Circle().frame(width: 2.3, height: 2.3)
+                    Circle().frame(width: 2.3, height: 2.3)
+                }
+            }
+        }
     }
 }

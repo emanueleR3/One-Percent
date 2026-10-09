@@ -6,34 +6,30 @@ struct DayPickerView: View {
 
     @State private var isLeftHovered = false
     @State private var isRightHovered = false
+    @State private var isTitleHovered = false
+
+    private var isToday: Bool {
+        store.dateService.isToday(store.selectedDate)
+    }
 
     var body: some View {
-        HStack(spacing: 4) {
-            // Previous Day Button (stable hitbox, 26x26)
-            Button {
+        HStack(spacing: 2) {
+            chevron(
+                systemName: "chevron.left",
+                isEnabled: store.canGoToPreviousDay,
+                isHovered: isLeftHovered,
+                help: store.canGoToPreviousDay ? "Previous day" : "Minimum range reached (-7 days)",
+                accessibility: "Go to previous day",
+                onHover: { isLeftHovered = $0 }
+            ) {
                 withAnimation(IslandAnimations.statusTransition) {
                     store.selectPreviousDay()
                 }
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(store.canGoToPreviousDay ? (isLeftHovered ? IslandPalette.primaryText : IslandPalette.secondaryText) : IslandPalette.tertiaryText.opacity(0.3))
-                    .frame(width: 26, height: 26)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(isLeftHovered && store.canGoToPreviousDay ? IslandPalette.secondarySurface : Color.clear)
-                    )
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .disabled(!store.canGoToPreviousDay)
-            .onHover { isLeftHovered = $0 }
-            .help(store.canGoToPreviousDay ? "Previous day (←)" : "Minimum range reached (-7 days)")
-            .accessibilityLabel("Go to previous day")
 
-            // Day Title (Strictly fixed width: 122pt, centered, never shifts the arrows)
+            // Day title (fixed width so the arrows never shift). Tapping it returns to today.
             Button {
-                if !store.dateService.isToday(store.selectedDate) {
+                if !isToday {
                     withAnimation(IslandAnimations.statusTransition) {
                         store.selectToday()
                     }
@@ -41,45 +37,66 @@ struct DayPickerView: View {
             } label: {
                 Text(store.dateService.formatDayTitle(for: store.selectedDate))
                     .font(IslandTypography.statusLabel)
-                    .foregroundStyle(store.dateService.isToday(store.selectedDate) ? IslandPalette.primaryText : IslandPalette.inProgressAccent)
+                    .foregroundStyle(isToday ? IslandPalette.primaryText : IslandPalette.inProgressAccent)
                     .lineLimit(1)
-                    .frame(width: 122, height: 24)
+                    .contentTransition(.opacity)
+                    .frame(width: 108, height: 24)
                     .background(
-                        RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
-                            .fill(IslandPalette.secondarySurface)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
-                            .stroke(IslandPalette.border.opacity(0.6), lineWidth: 0.5)
+                        RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius + 1, style: .continuous)
+                            .fill(isTitleHovered && !isToday ? IslandPalette.hoverFill : IslandPalette.restFill)
                     )
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .help(store.dateService.isToday(store.selectedDate) ? "Current date: Today" : "Click to jump back to Today")
-            .accessibilityLabel("Selected date: \(store.dateService.formatDayTitle(for: store.selectedDate)). \(store.dateService.isToday(store.selectedDate) ? "" : "Click to return to today.")")
+            .buttonStyle(PressScaleButtonStyle(scale: 0.97))
+            .onHover { isTitleHovered = $0 }
+            .animation(IslandAnimations.hoverFade, value: isTitleHovered)
+            .help(isToday ? "Current date: Today" : "Click to jump back to Today")
+            .accessibilityLabel("Selected date: \(store.dateService.formatDayTitle(for: store.selectedDate)). \(isToday ? "" : "Click to return to today.")")
 
-            // Next Day Button (stable hitbox, 26x26)
-            Button {
+            chevron(
+                systemName: "chevron.right",
+                isEnabled: store.canGoToNextDay,
+                isHovered: isRightHovered,
+                help: store.canGoToNextDay ? "Next day" : "Maximum range reached (+7 days)",
+                accessibility: "Go to next day",
+                onHover: { isRightHovered = $0 }
+            ) {
                 withAnimation(IslandAnimations.statusTransition) {
                     store.selectNextDay()
                 }
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(store.canGoToNextDay ? (isRightHovered ? IslandPalette.primaryText : IslandPalette.secondaryText) : IslandPalette.tertiaryText.opacity(0.3))
-                    .frame(width: 26, height: 26)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(isRightHovered && store.canGoToNextDay ? IslandPalette.secondarySurface : Color.clear)
-                    )
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .disabled(!store.canGoToNextDay)
-            .onHover { isRightHovered = $0 }
-            .help(store.canGoToNextDay ? "Next day (→)" : "Maximum range reached (+7 days)")
-            .accessibilityLabel("Go to next day")
         }
-        .frame(width: 182)
+    }
+
+    private func chevron(
+        systemName: String,
+        isEnabled: Bool,
+        isHovered: Bool,
+        help: String,
+        accessibility: String,
+        onHover: @escaping (Bool) -> Void,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 10.5, weight: .bold))
+                .foregroundStyle(
+                    isEnabled
+                        ? (isHovered ? IslandPalette.primaryText : IslandPalette.secondaryText)
+                        : IslandPalette.tertiaryText.opacity(0.3)
+                )
+                .frame(width: 24, height: 24)
+                .background(
+                    RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius + 1, style: .continuous)
+                        .fill(isHovered && isEnabled ? IslandPalette.hoverFill : Color.clear)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScaleButtonStyle(scale: 0.88))
+        .disabled(!isEnabled)
+        .onHover(perform: onHover)
+        .animation(IslandAnimations.hoverFade, value: isHovered)
+        .help(help)
+        .accessibilityLabel(accessibility)
     }
 }
