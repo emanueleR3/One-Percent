@@ -2,3 +2,7 @@
 build/
 .DS_Store
 .vscode/
+
+# Xcode per-user state
+xcuserdata/
+*.xcuserstate

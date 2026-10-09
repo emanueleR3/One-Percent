@@ -37,6 +37,8 @@ public final class HabitPersistenceController: HabitPersisting, @unchecked Senda
 
 /// Default for tests and previews: nothing touches the disk.
 public final class InMemoryHabitPersistence: HabitPersisting, @unchecked Sendable {
+    public init() {}
+
     public private(set) var stored: [Habit] = []
 
     public func loadHabits() throws -> [Habit] { stored }

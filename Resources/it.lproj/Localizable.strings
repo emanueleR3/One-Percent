@@ -95,8 +95,10 @@
 "Custom" = "Personalizzato";
 "Cut" = "Taglia";
 "Daily" = "Ogni giorno";
+"Day" = "Giorno";
 "Day wrap-up" = "Chiusura della giornata";
 "Deferred to tomorrow" = "Rimandato a domani";
+"Delete" = "Elimina";
 "Delete %@" = "Elimina %@";
 "Delete Goal" = "Elimina obiettivo";
 "Delete goal" = "Elimina obiettivo";
@@ -278,6 +280,7 @@
 "The One: the goal that matters most today" = "The One: l'obiettivo che conta di più oggi";
 "The built-in display, else the main one" = "Lo schermo integrato, altrimenti quello principale";
 "The first sign-in merges what is on this Mac with the cloud. Nothing is deleted, and a backup is kept." = "Il primo accesso unisce ciò che è su questo Mac con il cloud. Non viene cancellato nulla e resta una copia di backup.";
+"The first sign-in merges what is on this iPhone with the cloud. Nothing is deleted." = "Il primo accesso unisce ciò che è su questo iPhone con il cloud. Non viene cancellato nulla.";
 "The real notch covers the middle" = "Il notch vero ne copre il centro";
 "The session ended. Sign in again." = "La sessione è scaduta. Accedi di nuovo.";
 "This Mac keeps its goals and habits." = "Questo Mac conserva i suoi obiettivi e le sue abitudini.";
@@ -303,6 +306,7 @@
 "Virtual notch" = "Notch virtuale";
 "Weekdays" = "Giorni feriali";
 "Weekly" = "Ogni settimana";
+"What's the goal?" = "Qual è l'obiettivo?";
 "What's the one thing that would make today a good day?" = "Qual è la cosa che renderebbe oggi una buona giornata?";
 "Where it went" = "Dove è andato";
 "Whichever has the menu bar" = "Quello con la barra dei menu";

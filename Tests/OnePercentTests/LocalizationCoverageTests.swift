@@ -17,7 +17,7 @@ final class LocalizationCoverageTests: XCTestCase {
 
     /// Every `L("…")` and `Lp("…", "…", …)` literal in the sources.
     private func usedKeys() throws -> Set<String> {
-        let folders = ["Sources/OnePercent", "Sources/OnePercentCore"].map { repoRoot.appendingPathComponent($0) }
+        let folders = ["Sources/OnePercent", "Sources/OnePercentCore", "iOS/OnePercentiOS"].map { repoRoot.appendingPathComponent($0) }
         let files = folders.compactMap { FileManager.default.enumerator(at: $0, includingPropertiesForKeys: nil) }
         let literal = "\"((?:[^\"\\\\]|\\\\.)*)\""
         let single = try NSRegularExpression(pattern: "\\bL\\(\(literal)")

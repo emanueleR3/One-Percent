@@ -95,8 +95,10 @@
 "Custom" = "Custom";
 "Cut" = "Cut";
 "Daily" = "Daily";
+"Day" = "Day";
 "Day wrap-up" = "Day wrap-up";
 "Deferred to tomorrow" = "Deferred to tomorrow";
+"Delete" = "Delete";
 "Delete %@" = "Delete %@";
 "Delete Goal" = "Delete Goal";
 "Delete goal" = "Delete goal";
@@ -278,6 +280,7 @@
 "The One: the goal that matters most today" = "The One: the goal that matters most today";
 "The built-in display, else the main one" = "The built-in display, else the main one";
 "The first sign-in merges what is on this Mac with the cloud. Nothing is deleted, and a backup is kept." = "The first sign-in merges what is on this Mac with the cloud. Nothing is deleted, and a backup is kept.";
+"The first sign-in merges what is on this iPhone with the cloud. Nothing is deleted." = "The first sign-in merges what is on this iPhone with the cloud. Nothing is deleted.";
 "The real notch covers the middle" = "The real notch covers the middle";
 "The session ended. Sign in again." = "The session ended. Sign in again.";
 "This Mac keeps its goals and habits." = "This Mac keeps its goals and habits.";
@@ -303,6 +306,7 @@
 "Virtual notch" = "Virtual notch";
 "Weekdays" = "Weekdays";
 "Weekly" = "Weekly";
+"What's the goal?" = "What's the goal?";
 "What's the one thing that would make today a good day?" = "What's the one thing that would make today a good day?";
 "Where it went" = "Where it went";
 "Whichever has the menu bar" = "Whichever has the menu bar";

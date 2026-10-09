@@ -12,7 +12,11 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SOURCES = [os.path.join(ROOT, "Sources", name) for name in ("OnePercent", "OnePercentCore")]
+SOURCES = [
+    os.path.join(ROOT, "Sources", "OnePercent"),
+    os.path.join(ROOT, "Sources", "OnePercentCore"),
+    os.path.join(ROOT, "iOS", "OnePercentiOS"),
+]
 
 
 def used_keys():
