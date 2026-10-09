@@ -22,5 +22,5 @@ enum IslandMetrics {
     static let minPanelHeight: CGFloat = 160
     static let maxPanelHeight: CGFloat = 420
     static let panelWidth: CGFloat = 440
-    static let standardPanelHeight: CGFloat = 264
+    static let standardPanelHeight: CGFloat = 300
 }

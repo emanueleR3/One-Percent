@@ -12,6 +12,8 @@ struct TaskRowView: View {
     var onEditingChanged: ((Bool) -> Void)? = nil
     /// True while the row is being dragged to reorder; draws the raised surface.
     var isLifted: Bool = false
+    /// How many times this occurrence has already been pushed to the next day.
+    var deferralCount: Int = 0
 
     @State private var isHovered = false
     @State private var isCheckHovered = false
@@ -182,21 +184,32 @@ struct TaskRowView: View {
                     }
                 }
         } else {
-            Text(task.title)
-                .font(IslandTypography.taskTitle)
-                .foregroundStyle(titleColor)
-                .strikethrough(task.status == .done, color: IslandPalette.tertiaryText)
-                .lineLimit(nil)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .animation(IslandAnimations.statusTransition, value: task.status)
-                .onTapGesture(count: 2) {
-                    startEditing()
+            HStack(spacing: 6) {
+                Text(task.title)
+                    .font(IslandTypography.taskTitle)
+                    .foregroundStyle(titleColor)
+                    .strikethrough(task.status == .done, color: IslandPalette.tertiaryText)
+                    .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .animation(IslandAnimations.statusTransition, value: task.status)
+                    .onTapGesture(count: 2) {
+                        startEditing()
+                    }
+                    .help("Double click to edit title")
+                    .accessibilityLabel(accessibilityDescription)
+
+                if showsMovedBadge {
+                    MovedBadgeView(count: deferralCount)
                 }
-                .help("Double click to edit title")
-                .accessibilityLabel(accessibilityDescription)
+            }
         }
+    }
+
+    /// Appears from the second push onwards, and only while the goal is still open.
+    private var showsMovedBadge: Bool {
+        deferralCount >= 2 && (task.status == .todo || task.status == .inProgress)
     }
 
     /// Trailing status control. Active states (in progress / tomorrow) keep a tinted chip so they
@@ -392,5 +405,38 @@ private struct GripDots: View {
                 }
             }
         }
+    }
+}
+
+/// "Moved 3x" nudge for goals that keep slipping to the next day. Warms up the more it repeats.
+private struct MovedBadgeView: View {
+    let count: Int
+
+    private var tint: Color {
+        switch count {
+        case ..<3: return IslandPalette.deferredAccent
+        case 3...4: return IslandPalette.streakAccent
+        default: return IslandPalette.destructiveAccent
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "arrow.uturn.forward")
+                .font(.system(size: 8, weight: .bold))
+            Text("\(count)×")
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2.5)
+        .background(
+            RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
+                .fill(tint.opacity(0.13))
+        )
+        .fixedSize()
+        .help("Moved to tomorrow \(count) times")
+        .accessibilityLabel("Moved to tomorrow \(count) times")
     }
 }

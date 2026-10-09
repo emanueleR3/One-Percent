@@ -10,6 +10,9 @@ final class DateService: ObservableObject {
 
     var onDayChanged: ((Date) -> Void)?
 
+    /// Calendar used for every day computation, exposed for aggregations such as `TrackingCalculator`.
+    var currentCalendar: Calendar { calendar }
+
     init(calendar: Calendar = .autoupdatingCurrent) {
         self.calendar = calendar
         self.today = calendar.startOfDay(for: Date())

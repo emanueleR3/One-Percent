@@ -18,6 +18,9 @@ enum IslandPalette {
     static let deferredAccent = Color(red: 183.0 / 255.0, green: 183.0 / 255.0, blue: 201.0 / 255.0)
     static let destructiveAccent = Color(red: 255.0 / 255.0, green: 105.0 / 255.0, blue: 97.0 / 255.0)
 
+    /// Warm orange reserved for streaks and the "moved again" nudge, distinct from the in-progress amber.
+    static let streakAccent = Color(red: 255.0 / 255.0, green: 150.0 / 255.0, blue: 88.0 / 255.0)
+
     // MARK: - Surface tokens
     //
     // The panel melts into the physical notch, so it starts at pure black and only lifts a

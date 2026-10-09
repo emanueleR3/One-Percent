@@ -16,4 +16,11 @@ enum IslandTypography {
     static let heroHeadline = Font.system(size: 12.5, weight: .medium)
     static let chip = Font.system(size: 10.5, weight: .medium)
     static let keycap = Font.system(size: 9.5, weight: .medium, design: .monospaced)
+
+    /// Small uppercase label above a stat. Pair with `.tracking(0.6)`.
+    static let eyebrow = Font.system(size: 9.5, weight: .semibold)
+    static let statValue = Font.system(size: 18, weight: .semibold, design: .rounded)
+    static let statValueLarge = Font.system(size: 22, weight: .semibold, design: .rounded)
+    static let statCaption = Font.system(size: 10, weight: .regular)
+    static let weekdayLetter = Font.system(size: 9, weight: .semibold)
 }

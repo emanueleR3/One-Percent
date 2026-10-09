@@ -605,3 +605,62 @@ final class MockTaskPersistence: TaskPersisting, @unchecked Sendable {
         storedTasks = tasks
     }
 }
+
+// MARK: - Tracking integration
+
+@MainActor
+final class TaskStoreTrackingTests: XCTestCase {
+    private var store: TaskStore!
+
+    override func setUp() async throws {
+        store = TaskStore(
+            persistence: MockTaskPersistence(),
+            dateService: DateService(calendar: Calendar(identifier: .gregorian))
+        )
+    }
+
+    func testTrackingStartsEmpty() {
+        XCTAssertEqual(store.tracking.currentStreak, 0)
+        XCTAssertFalse(store.tracking.isTodayCounted)
+        XCTAssertEqual(store.tracking.week.count, 7)
+    }
+
+    func testCompletingAGoalBanksTodayInTheStreak() {
+        guard let task = store.addTask(title: "Read") else { return XCTFail("add failed") }
+        XCTAssertEqual(store.tracking.currentStreak, 0)
+
+        store.updateTaskStatus(id: task.id, newStatus: .done)
+
+        XCTAssertEqual(store.tracking.currentStreak, 1)
+        XCTAssertTrue(store.tracking.isTodayCounted)
+        XCTAssertEqual(store.tracking.perfectDays, 1)
+        XCTAssertEqual(store.tracking.week.last?.completed, 1)
+    }
+
+    func testTrackingCacheInvalidatesWhenTasksChange() {
+        guard let task = store.addTask(title: "Read") else { return XCTFail("add failed") }
+        store.updateTaskStatus(id: task.id, newStatus: .done)
+        XCTAssertEqual(store.tracking.currentStreak, 1)
+
+        store.updateTaskStatus(id: task.id, newStatus: .todo)
+        XCTAssertEqual(store.tracking.currentStreak, 0)
+
+        store.deleteTask(id: task.id)
+        XCTAssertEqual(store.tracking.week.last?.total, 0)
+    }
+
+    func testDeferralCountGrowsEachTimeAGoalIsPushedForward() {
+        guard let first = store.addTask(title: "Call accountant") else { return XCTFail("add failed") }
+        XCTAssertEqual(store.deferralCount(for: first.id), 0)
+
+        store.deferTask(id: first.id)
+        let second = store.allTasks.first { $0.sourceTaskID == first.id }
+        XCTAssertNotNil(second)
+        XCTAssertEqual(store.deferralCount(for: second!.id), 1)
+
+        store.deferTask(id: second!.id)
+        let third = store.allTasks.first { $0.sourceTaskID == second!.id }
+        XCTAssertNotNil(third)
+        XCTAssertEqual(store.deferralCount(for: third!.id), 2)
+    }
+}

@@ -18,6 +18,7 @@ struct IslandView: View {
     var onInteractionChange: ((Bool) -> Void)? = nil
 
     @State private var isAddingTask = false
+    @State private var showStats = false
     @State private var draggedTaskID: UUID? = nil
     @State private var draggedSourceIndex: Int? = nil
     @State private var targetIndex: Int? = nil
@@ -69,6 +70,14 @@ struct IslandView: View {
         .onChange(of: isAddingTask) { _, adding in
             onInteractionChange?(adding)
         }
+        .onChange(of: presentationState.isExpanded) { _, expanded in
+            // Reopen on the goals, not on whichever page was left open.
+            if !expanded {
+                var noAnimation = Transaction()
+                noAnimation.disablesAnimations = true
+                withTransaction(noAnimation) { showStats = false }
+            }
+        }
         .onChange(of: desiredPanelHeight) { _, newHeight in
             onHeightChange?(newHeight)
         }
@@ -79,14 +88,56 @@ struct IslandView: View {
 
     private var islandCard: some View {
         VStack(alignment: .leading, spacing: IslandMetrics.standard) {
-            // Hero progress, arrow navigation, and add goal button, with the fill bar tucked underneath
+            // Hero progress with streak / stats / add controls, and the fill bar tucked underneath
             VStack(alignment: .leading, spacing: 9) {
                 IslandHeaderView(
                     store: store,
-                    isAddingTask: $isAddingTask
+                    isAddingTask: $isAddingTask,
+                    showStats: $showStats
                 )
 
                 DailyProgressView(store: store)
+            }
+
+            // Two pages share the space under the bar: the day's goals, or the stats.
+            ZStack(alignment: .top) {
+                if showStats {
+                    StatsView(store: store) { date in
+                        withAnimation(IslandAnimations.defaultSpring) {
+                            store.selectDate(date)
+                            showStats = false
+                        }
+                    }
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .transition(pageTransition)
+                } else {
+                    listPage
+                        .transition(pageTransition)
+                }
+            }
+            .frame(maxHeight: .infinity, alignment: .top)
+        }
+        .padding(.top, IslandMetrics.mainPadding)
+        .padding(.horizontal, IslandMetrics.mainPadding)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(cardShape.fill(cardFill))
+        .clipShape(cardShape)
+        .overlay { cardShape.strokeBorder(cardRim, lineWidth: 1) }
+        .overlay { celebrationRim }
+        // Ultra-diffuse lift; stays inside the window's 24pt headroom so it is never clipped.
+        .shadow(color: Color.black.opacity(0.38), radius: 14, x: 0, y: 8)
+    }
+
+    /// Week strip + day picker, then the add editor and the goal list (or its empty state).
+    private var listPage: some View {
+        VStack(alignment: .leading, spacing: IslandMetrics.standard) {
+            HStack(spacing: 8) {
+                WeekStripView(store: store)
+
+                Spacer(minLength: 6)
+
+                DayPickerView(store: store)
             }
 
             // Discrete error feedback if persistence encountered an error (Section 5.4)
@@ -204,7 +255,8 @@ struct IslandView: View {
                                 onEditingChanged: { isEditing in
                                     onInteractionChange?(isEditing)
                                 },
-                                isLifted: isBeingDragged
+                                isLifted: isBeingDragged,
+                                deferralCount: store.deferralCount(for: task.id)
                             )
                             .matchedGeometryEffect(id: task.id, in: taskListNamespace)
                             .background(
@@ -252,16 +304,11 @@ struct IslandView: View {
                 .animation(IslandAnimations.hoverFade, value: canScrollDown)
             }
         }
-        .padding(.top, IslandMetrics.mainPadding)
-        .padding(.horizontal, IslandMetrics.mainPadding)
-        .padding(.bottom, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(cardShape.fill(cardFill))
-        .clipShape(cardShape)
-        .overlay { cardShape.strokeBorder(cardRim, lineWidth: 1) }
-        .overlay { celebrationRim }
-        // Ultra-diffuse lift; stays inside the window's 24pt headroom so it is never clipped.
-        .shadow(color: Color.black.opacity(0.38), radius: 14, x: 0, y: 8)
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private var pageTransition: AnyTransition {
+        .opacity.combined(with: .offset(y: 6))
     }
 
     // MARK: - Card chrome

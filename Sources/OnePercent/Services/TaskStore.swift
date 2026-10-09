@@ -5,7 +5,12 @@ import SwiftUI
 /// Observable state and domain operations for daily tasks (Section 3.1, 5.4, 6, 7, 8)
 @MainActor
 final class TaskStore: ObservableObject {
-    @Published private(set) var allTasks: [TaskItem] = []
+    @Published private(set) var allTasks: [TaskItem] = [] {
+        didSet {
+            trackingCache = nil
+            deferralCountsCache = nil
+        }
+    }
     @Published var selectedDate: Date {
         didSet {
             let normalized = dateService.normalize(selectedDate)
@@ -16,6 +21,8 @@ final class TaskStore: ObservableObject {
     }
     @Published private(set) var lastErrorMessage: String?
     @Published var autoSlidingTaskID: UUID? = nil
+    private var trackingCache: (today: Date, summary: TrackingSummary)?
+    private var deferralCountsCache: [UUID: Int]?
     private var demoteWorkItems: [UUID: DispatchWorkItem] = [:]
     private var promoteWorkItems: [UUID: DispatchWorkItem] = [:]
 
@@ -80,6 +87,29 @@ final class TaskStore: ObservableObject {
 
     var currentProgress: TaskProgress {
         TaskProgress(tasks: selectedDateTasks)
+    }
+
+    // MARK: - Tracking
+
+    /// Streaks, week strip, stats page and 1% score. Recomputed only when tasks or the day change.
+    var tracking: TrackingSummary {
+        let today = dateService.today
+        if let cached = trackingCache, cached.today == today {
+            return cached.summary
+        }
+        let calendar = dateService.currentCalendar
+        let stats = TrackingCalculator.dayStats(for: allTasks, calendar: calendar)
+        let summary = TrackingCalculator.summary(dayStats: stats, today: today, calendar: calendar)
+        trackingCache = (today, summary)
+        return summary
+    }
+
+    /// How many times this occurrence has already been pushed to the next day.
+    func deferralCount(for id: UUID) -> Int {
+        if deferralCountsCache == nil {
+            deferralCountsCache = TrackingCalculator.deferralCounts(for: allTasks)
+        }
+        return deferralCountsCache?[id] ?? 0
     }
 
     // MARK: - Task Mutations
