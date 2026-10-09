@@ -554,6 +554,13 @@ final class TaskStore: ObservableObject {
         tagUsage.map(\.tag)
     }
 
+    /// Every known tag the goal does not have yet, most used first. Tags used only on finished
+    /// goals are still the user's tags, so nothing is cut off: a tag never drops out of reach just
+    /// because others are used more.
+    func tagSuggestions(excluding current: [String]) -> [String] {
+        allTagNames.filter { !current.contains($0) }
+    }
+
     var tagUsage: [(tag: String, count: Int)] {
         var counts: [String: Int] = [:]
         for task in allTasks { for tag in task.tags { counts[tag, default: 0] += 1 } }

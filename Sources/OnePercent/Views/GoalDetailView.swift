@@ -237,7 +237,7 @@ struct GoalDetailView: View {
     // MARK: - Tags
 
     private func tagsSection(for task: TaskItem) -> some View {
-        let suggestions = store.allTagNames.filter { !task.tags.contains($0) }.prefix(3)
+        let suggestions = store.tagSuggestions(excluding: task.tags)
 
         return VStack(alignment: .leading, spacing: 7) {
             EyebrowText(L("Tags"))
@@ -253,7 +253,7 @@ struct GoalDetailView: View {
 
                 tagField(for: task)
 
-                ForEach(Array(suggestions), id: \.self) { tag in
+                ForEach(suggestions, id: \.self) { tag in
                     Button {
                         withAnimation(IslandAnimations.defaultSpring) {
                             store.addTag(tag, to: task.id)
