@@ -30,15 +30,28 @@ struct ProgressHeroView: View {
                 Text(headline)
                     .font(IslandTypography.heroHeadline)
                     .foregroundStyle(isComplete ? IslandPalette.completedAccent : IslandPalette.primaryText)
-                Text(subline)
-                    .font(IslandTypography.secondaryMetadata)
-                    .foregroundStyle(IslandPalette.tertiaryText)
+                if theOneIsOpen {
+                    (Text(Image(systemName: "star.fill")) + Text(" The One is open"))
+                        .font(IslandTypography.secondaryMetadata)
+                        .foregroundStyle(IslandPalette.theOneAccent)
+                } else {
+                    Text(subline)
+                        .font(IslandTypography.secondaryMetadata)
+                        .foregroundStyle(IslandPalette.tertiaryText)
+                }
             }
             .contentTransition(.opacity)
             .animation(IslandAnimations.hoverFade, value: headline)
+            .animation(IslandAnimations.hoverFade, value: theOneIsOpen)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(store.dateService.formatProgressHeader(for: store.selectedDate)). \(progress.percentageInt) percent. \(headline), \(subline)")
+    }
+
+    /// The single most important goal of the day is still waiting; nudge it into the hero.
+    private var theOneIsOpen: Bool {
+        guard let theOne = store.theOne(for: store.selectedDate) else { return false }
+        return theOne.status == .todo || theOne.status == .inProgress
     }
 
     private var headline: String {

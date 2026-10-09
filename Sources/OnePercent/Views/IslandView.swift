@@ -14,11 +14,13 @@ final class IslandPresentationState: ObservableObject {
 struct IslandView: View {
     @ObservedObject var store: TaskStore
     @ObservedObject var presentationState: IslandPresentationState
+    @ObservedObject private var preferences: AppPreferences
+    private let services: IslandServices
     var onHeightChange: ((CGFloat) -> Void)? = nil
     var onInteractionChange: ((Bool) -> Void)? = nil
 
+    @State private var page: IslandPage = .goals
     @State private var isAddingTask = false
-    @State private var showStats = false
     @State private var draggedTaskID: UUID? = nil
     @State private var draggedSourceIndex: Int? = nil
     @State private var targetIndex: Int? = nil
@@ -27,22 +29,33 @@ struct IslandView: View {
     @State private var snapshotFrames: [UUID: CGRect] = [:]
     @State private var snapshotTasks: [TaskItem] = []
 
+    /// Goals just pushed to tomorrow by the wrap-up prompt; kept for a short Undo window.
+    @State private var movedGoalIDs: [UUID]? = nil
+    @State private var movedBannerToken = 0
+
     /// 0 -> 1 glow around the card when the last open goal of the day is closed.
     @State private var celebrationGlow: Double = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    // Scroll cues: native indicator is hidden (it covered the status chips), so the list fades at
-    // whichever edge still has rows and draws a slim thumb in the card's right gutter instead.
-    @State private var listViewportHeight: CGFloat = 0
-    @State private var listContentHeight: CGFloat = 0
-    @State private var listScrollOffset: CGFloat = 0
-    @State private var isScrollThumbActive = false
-    @State private var scrollThumbToken = 0
 
     private let maxVisibleTasksCount = 5
     private let taskRowApproxHeight: CGFloat = IslandMetrics.rowHeight
     private let rowSpacing: CGFloat = IslandMetrics.rowSpacing
     @Namespace private var taskListNamespace
+
+    init(
+        store: TaskStore,
+        presentationState: IslandPresentationState,
+        services: IslandServices,
+        onHeightChange: ((CGFloat) -> Void)? = nil,
+        onInteractionChange: ((Bool) -> Void)? = nil
+    ) {
+        self.store = store
+        self.presentationState = presentationState
+        self._preferences = ObservedObject(wrappedValue: services.preferences)
+        self.services = services
+        self.onHeightChange = onHeightChange
+        self.onInteractionChange = onInteractionChange
+    }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -67,15 +80,18 @@ struct IslandView: View {
         .padding(.horizontal, NotchPositionResolver.defaultHeadroom)
         .padding(.bottom, NotchPositionResolver.defaultHeadroom)
         .accessibilityElement(children: .contain)
-        .onChange(of: isAddingTask) { _, adding in
-            onInteractionChange?(adding)
+        .onChange(of: needsKeyboard) { _, needs in
+            onInteractionChange?(needs)
         }
         .onChange(of: presentationState.isExpanded) { _, expanded in
             // Reopen on the goals, not on whichever page was left open.
             if !expanded {
                 var noAnimation = Transaction()
                 noAnimation.disablesAnimations = true
-                withTransaction(noAnimation) { showStats = false }
+                withTransaction(noAnimation) {
+                    page = .goals
+                    isAddingTask = false
+                }
             }
         }
         .onChange(of: desiredPanelHeight) { _, newHeight in
@@ -86,33 +102,54 @@ struct IslandView: View {
         }
     }
 
+    /// The panel has to stay open and key while text is being typed.
+    private var needsKeyboard: Bool {
+        isAddingTask || page.isDetail
+    }
+
     private var islandCard: some View {
         VStack(alignment: .leading, spacing: IslandMetrics.standard) {
-            // Hero progress with streak / stats / add controls, and the fill bar tucked underneath
+            // Hero progress with streak / stats / settings / add controls, and the fill bar tucked underneath
             VStack(alignment: .leading, spacing: 9) {
                 IslandHeaderView(
                     store: store,
-                    isAddingTask: $isAddingTask,
-                    showStats: $showStats
+                    page: $page,
+                    isAddingTask: $isAddingTask
                 )
 
                 DailyProgressView(store: store)
             }
 
-            // Two pages share the space under the bar: the day's goals, or the stats.
+            // Four pages share the space under the bar.
             ZStack(alignment: .top) {
-                if showStats {
+                switch page {
+                case .goals:
+                    listPage
+                        .transition(pageTransition)
+                case .stats:
                     StatsView(store: store) { date in
                         withAnimation(IslandAnimations.defaultSpring) {
                             store.selectDate(date)
-                            showStats = false
+                            page = .goals
                         }
                     }
                     .frame(maxHeight: .infinity, alignment: .top)
                     .transition(pageTransition)
-                } else {
-                    listPage
-                        .transition(pageTransition)
+                case .settings:
+                    SettingsView(
+                        store: store,
+                        preferences: preferences,
+                        launchAtLogin: services.launchAtLogin,
+                        smartAdd: services.smartAdd,
+                        reminders: services.reminders
+                    )
+                    .transition(pageTransition)
+                case .detail(let id):
+                    GoalDetailView(store: store, preferences: preferences, taskID: id) {
+                        withAnimation(IslandAnimations.defaultSpring) { page = .goals }
+                    }
+                    .id(id)
+                    .transition(pageTransition)
                 }
             }
             .frame(maxHeight: .infinity, alignment: .top)
@@ -129,7 +166,7 @@ struct IslandView: View {
         .shadow(color: Color.black.opacity(0.38), radius: 14, x: 0, y: 8)
     }
 
-    /// Week strip + day picker, then the add editor and the goal list (or its empty state).
+    /// Week strip + day picker, the wrap-up prompt, the add editor, then the goal list (or its empty state).
     private var listPage: some View {
         VStack(alignment: .leading, spacing: IslandMetrics.standard) {
             HStack(spacing: 8) {
@@ -142,51 +179,29 @@ struct IslandView: View {
 
             // Discrete error feedback if persistence encountered an error (Section 5.4)
             if let errorMessage = store.lastErrorMessage {
-                HStack(spacing: IslandMetrics.compact) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(IslandPalette.destructiveAccent)
+                errorBanner(errorMessage)
+            }
 
-                    Text(errorMessage)
-                        .font(IslandTypography.caption)
-                        .foregroundStyle(IslandPalette.secondaryText)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-
-                    Spacer(minLength: 4)
-
-                    Button("Retry") {
-                        store.retrySave()
-                    }
-                    .buttonStyle(.plain)
-                    .font(IslandTypography.caption)
-                    .foregroundStyle(IslandPalette.completedAccent)
-
-                    Button {
-                        store.clearErrorMessage()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 9))
-                            .foregroundStyle(IslandPalette.tertiaryText)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
-                        .fill(IslandPalette.destructiveAccent.opacity(0.10))
+            if let mode = wrapUpMode {
+                WrapUpBannerView(
+                    mode: mode,
+                    onMove: moveRemainingToTomorrow,
+                    onDismiss: dismissWrapUp,
+                    onUndo: undoMoveToTomorrow
                 )
+                .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
             }
 
             // Inline Add Goal Editor
             if isAddingTask {
                 AddTaskView(
-                    onAdd: { title in
-                        store.addTask(title: title)
-                        withAnimation(IslandAnimations.defaultSpring) {
-                            isAddingTask = false
-                        }
+                    smartAdd: services.smartAdd,
+                    smartAddEnabled: preferences.smartAddEnabled,
+                    dateService: store.dateService,
+                    targetDate: store.selectedDate,
+                    tagVocabulary: { store.tagVocabulary() },
+                    onAdd: { goal in
+                        handleNewGoal(goal)
                     },
                     onCancel: {
                         withAnimation(IslandAnimations.defaultSpring) {
@@ -212,7 +227,7 @@ struct IslandView: View {
                 .frame(maxWidth: .infinity, minHeight: scrollListMaxHeight)
                 .transition(.opacity)
             } else if !store.selectedDateTasks.isEmpty {
-                ScrollView(.vertical, showsIndicators: false) {
+                FadingScrollView {
                     VStack(spacing: rowSpacing) {
                         ForEach(Array(store.selectedDateTasks.enumerated()), id: \.element.id) { index, task in
                             let isBeingDragged = (draggedTaskID == task.id)
@@ -253,10 +268,21 @@ struct IslandView: View {
                                     commitReorder()
                                 },
                                 onEditingChanged: { isEditing in
-                                    onInteractionChange?(isEditing)
+                                    onInteractionChange?(isEditing || needsKeyboard)
                                 },
                                 isLifted: isBeingDragged,
-                                deferralCount: store.deferralCount(for: task.id)
+                                accessories: accessories(for: task),
+                                onOpenDetails: {
+                                    withAnimation(IslandAnimations.defaultSpring) {
+                                        page = .detail(task.id)
+                                    }
+                                },
+                                onToggleTheOne: {
+                                    withAnimation(IslandAnimations.defaultSpring) {
+                                        store.toggleTheOne(id: task.id)
+                                    }
+                                    IslandHaptics.tick()
+                                }
                             )
                             .matchedGeometryEffect(id: task.id, in: taskListNamespace)
                             .background(
@@ -281,16 +307,7 @@ struct IslandView: View {
                     }
                     .padding(.vertical, 1)
                     .animation(.spring(response: 0.55, dampingFraction: 0.82), value: store.selectedDateTasks)
-                    .background(
-                        ScrollMetricsReader { offset, contentHeight, viewportHeight in
-                            listScrollOffset = offset
-                            listContentHeight = contentHeight
-                            listViewportHeight = viewportHeight
-                            pulseScrollThumb()
-                        }
-                    )
                 }
-                .scrollBounceBehavior(.basedOnSize)
                 .coordinateSpace(name: "TaskList")
                 .onPreferenceChange(TaskRowFramePreferenceKey.self) { preferences in
                     self.rowFrames = preferences
@@ -298,17 +315,132 @@ struct IslandView: View {
                 // Fill whatever the card has left: with more than five goals the sixth peeks in
                 // under the fade, which is what tells you the list continues.
                 .frame(maxHeight: .infinity)
-                .mask { listEdgeMask }
-                .overlay(alignment: .topTrailing) { scrollThumb }
-                .animation(IslandAnimations.hoverFade, value: canScrollUp)
-                .animation(IslandAnimations.hoverFade, value: canScrollDown)
             }
         }
+        .animation(IslandAnimations.defaultSpring, value: wrapUpMode)
         .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private func errorBanner(_ errorMessage: String) -> some View {
+        HStack(spacing: IslandMetrics.compact) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(IslandPalette.destructiveAccent)
+
+            Text(errorMessage)
+                .font(IslandTypography.caption)
+                .foregroundStyle(IslandPalette.secondaryText)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Spacer(minLength: 4)
+
+            Button("Retry") {
+                store.retrySave()
+            }
+            .buttonStyle(.plain)
+            .font(IslandTypography.caption)
+            .foregroundStyle(IslandPalette.completedAccent)
+
+            Button {
+                store.clearErrorMessage()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9))
+                    .foregroundStyle(IslandPalette.tertiaryText)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: IslandMetrics.badgeCornerRadius, style: .continuous)
+                .fill(IslandPalette.destructiveAccent.opacity(0.10))
+        )
     }
 
     private var pageTransition: AnyTransition {
         .opacity.combined(with: .offset(y: 6))
+    }
+
+    // MARK: - Row extras
+
+    private func accessories(for task: TaskItem) -> TaskRowAccessories {
+        TaskRowAccessories(
+            deferralCount: store.deferralCount(for: task.id),
+            habitStreak: task.habitID.map { store.habitStats(for: $0).currentStreak },
+            tags: task.tags.map { tag in
+                TagDisplay(name: tag, color: TagPalette.color(at: preferences.tagColorIndex(for: tag)))
+            }
+        )
+    }
+
+    // MARK: - Adding goals
+
+    private func handleNewGoal(_ goal: NewGoal) {
+        let target = store.dateService.normalize(goal.date ?? store.selectedDate)
+
+        if let schedule = goal.schedule {
+            store.addHabit(title: goal.title, schedule: schedule, tags: goal.tags, startDate: target)
+        } else {
+            store.addTask(title: goal.title, for: target, tags: goal.tags)
+        }
+
+        withAnimation(IslandAnimations.defaultSpring) {
+            isAddingTask = false
+            // "tomorrow" should show tomorrow, so the new goal is visible where it landed.
+            let offset = store.dateService.daysFromToday(to: target)
+            if target != store.dateService.normalize(store.selectedDate), (-7...7).contains(offset) {
+                store.selectDate(target)
+            }
+        }
+    }
+
+    // MARK: - Day wrap-up
+
+    /// Shown after the wrap-up time, only on today, while open goals remain and until dismissed.
+    private var wrapUpMode: WrapUpBannerView.Mode? {
+        if let moved = movedGoalIDs {
+            return .moved(goals: moved.count)
+        }
+        guard preferences.wrapUp.isEnabled, store.dateService.isToday(store.selectedDate) else { return nil }
+
+        let calendar = store.dateService.currentCalendar
+        let now = Date()
+        let minutes = calendar.component(.hour, from: now) * 60 + calendar.component(.minute, from: now)
+        guard minutes >= preferences.wrapUp.minutes else { return nil }
+
+        guard !preferences.isWrapUpDismissed(dayKey: store.dateService.dayKey(for: now)) else { return nil }
+
+        let count = store.wrapUpCandidates().count
+        return count > 0 ? .prompt(goals: count) : nil
+    }
+
+    private func moveRemainingToTomorrow() {
+        let ids = store.deferRemaining(for: store.selectedDate)
+        guard !ids.isEmpty else { return }
+        IslandHaptics.success()
+        withAnimation(IslandAnimations.defaultSpring) { movedGoalIDs = ids }
+
+        movedBannerToken += 1
+        let token = movedBannerToken
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+            if token == movedBannerToken {
+                withAnimation(IslandAnimations.defaultSpring) { movedGoalIDs = nil }
+            }
+        }
+    }
+
+    private func undoMoveToTomorrow() {
+        guard let ids = movedGoalIDs else { return }
+        store.undoDeferral(ids: ids)
+        withAnimation(IslandAnimations.defaultSpring) { movedGoalIDs = nil }
+    }
+
+    private func dismissWrapUp() {
+        withAnimation(IslandAnimations.defaultSpring) {
+            preferences.dismissWrapUp(dayKey: store.dateService.dayKey(for: Date()))
+        }
     }
 
     // MARK: - Card chrome
@@ -354,72 +486,6 @@ struct IslandView: View {
         withAnimation(.easeOut(duration: 0.25)) { celebrationGlow = 1 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) {
             withAnimation(.easeOut(duration: 0.9)) { celebrationGlow = 0 }
-        }
-    }
-
-    // MARK: - Scroll cues
-
-    private var listOverflows: Bool {
-        listContentHeight > listViewportHeight + 1
-    }
-
-    private var canScrollUp: Bool {
-        listOverflows && listScrollOffset > 1
-    }
-
-    private var canScrollDown: Bool {
-        listOverflows && listScrollOffset < listContentHeight - listViewportHeight - 1
-    }
-
-    /// Soft fade on each edge that still has rows beyond it; solid when that edge is flush.
-    private var listEdgeMask: some View {
-        VStack(spacing: 0) {
-            listEdgeFade(visible: canScrollUp, leading: true)
-            Color.black
-            listEdgeFade(visible: canScrollDown, leading: false)
-        }
-    }
-
-    private func listEdgeFade(visible: Bool, leading: Bool) -> some View {
-        ZStack {
-            Color.black.opacity(visible ? 0 : 1)
-            LinearGradient(
-                colors: leading ? [.clear, .black] : [.black, .clear],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .opacity(visible ? 1 : 0)
-        }
-        .frame(height: 16)
-    }
-
-    /// 2.5pt thumb parked in the 16pt card gutter, so it can never sit on top of a status chip.
-    @ViewBuilder
-    private var scrollThumb: some View {
-        if listOverflows, listViewportHeight > 0 {
-            let thumbHeight = max(18, listViewportHeight * listViewportHeight / listContentHeight)
-            let travel = max(0, listViewportHeight - thumbHeight)
-            let maxOffset = max(1, listContentHeight - listViewportHeight)
-            let progress = min(max(listScrollOffset / maxOffset, 0), 1)
-
-            Capsule()
-                .fill(Color.white.opacity(isScrollThumbActive ? 0.42 : 0.16))
-                .frame(width: 2.5, height: thumbHeight)
-                .offset(x: 9, y: progress * travel)
-                .animation(IslandAnimations.hoverFade, value: isScrollThumbActive)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
-    }
-
-    private func pulseScrollThumb() {
-        scrollThumbToken += 1
-        let token = scrollThumbToken
-        isScrollThumbActive = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            if token == scrollThumbToken {
-                isScrollThumbActive = false
-            }
         }
     }
 
@@ -540,7 +606,7 @@ struct IslandView: View {
             snapshotFrames = [:]
             snapshotTasks = []
         }
-        onInteractionChange?(false)
+        onInteractionChange?(needsKeyboard)
     }
 }
 
@@ -548,82 +614,5 @@ private struct TaskRowFramePreferenceKey: PreferenceKey {
     static var defaultValue: [UUID: CGRect] = [:]
     static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
         value.merge(nextValue()) { _, new in new }
-    }
-}
-
-/// Reports scroll offset / content height / viewport height of the enclosing `NSScrollView`.
-/// SwiftUI on macOS 14 has no scroll-geometry API, so this observes the clip view directly.
-private struct ScrollMetricsReader: NSViewRepresentable {
-    var onChange: (_ offset: CGFloat, _ contentHeight: CGFloat, _ viewportHeight: CGFloat) -> Void
-
-    func makeNSView(context: Context) -> ScrollMetricsProbeView {
-        let view = ScrollMetricsProbeView()
-        view.onChange = onChange
-        return view
-    }
-
-    func updateNSView(_ nsView: ScrollMetricsProbeView, context: Context) {
-        nsView.onChange = onChange
-        nsView.report()
-    }
-}
-
-private final class ScrollMetricsProbeView: NSView {
-    var onChange: ((CGFloat, CGFloat, CGFloat) -> Void)?
-    private var observers: [NSObjectProtocol] = []
-    private var lastReport: (CGFloat, CGFloat, CGFloat) = (-1, -1, -1)
-
-    deinit {
-        observers.forEach { NotificationCenter.default.removeObserver($0) }
-    }
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        attach()
-    }
-
-    private func attach() {
-        observers.forEach { NotificationCenter.default.removeObserver($0) }
-        observers.removeAll()
-
-        guard let scrollView = enclosingScrollView else {
-            // The hosting layer may not be wired up yet on the first pass.
-            DispatchQueue.main.async { [weak self] in
-                guard let self, self.window != nil, self.enclosingScrollView != nil else { return }
-                self.attach()
-            }
-            return
-        }
-
-        scrollView.hasVerticalScroller = false
-        let clipView = scrollView.contentView
-        clipView.postsBoundsChangedNotifications = true
-        observers.append(
-            NotificationCenter.default.addObserver(
-                forName: NSView.boundsDidChangeNotification, object: clipView, queue: .main
-            ) { [weak self] _ in self?.report() }
-        )
-        if let documentView = scrollView.documentView {
-            documentView.postsFrameChangedNotifications = true
-            observers.append(
-                NotificationCenter.default.addObserver(
-                    forName: NSView.frameDidChangeNotification, object: documentView, queue: .main
-                ) { [weak self] _ in self?.report() }
-            )
-        }
-        report()
-    }
-
-    func report() {
-        guard let scrollView = enclosingScrollView, let documentView = scrollView.documentView else { return }
-        let viewport = scrollView.contentView.bounds.height
-        let content = documentView.frame.height
-        let visible = scrollView.documentVisibleRect
-        let offset = documentView.isFlipped ? visible.minY : content - visible.maxY
-
-        let next = (offset.rounded(), content.rounded(), viewport.rounded())
-        guard next != lastReport else { return }
-        lastReport = next
-        onChange?(next.0, next.1, next.2)
     }
 }

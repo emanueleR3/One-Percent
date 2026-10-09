@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 final class NotchWindowController {
     let taskStore: TaskStore
+    private let services: IslandServices
     private let positionResolver = NotchPositionResolver()
     private let hoverMonitor = HoverMonitor()
     private var panel: NotchPanel?
@@ -24,8 +25,9 @@ final class NotchWindowController {
         panel?.isVisible == true && presentationState.isExpanded
     }
 
-    init(taskStore: TaskStore) {
+    init(taskStore: TaskStore, services: IslandServices) {
         self.taskStore = taskStore
+        self.services = services
     }
 
     func start() {
@@ -72,6 +74,7 @@ final class NotchWindowController {
 
     func showPanel() {
         taskStore.dateService.refreshToday()
+        taskStore.ensureHabitOccurrences()
         refreshGeometry()
         guard let panel else {
             return
@@ -147,6 +150,7 @@ final class NotchWindowController {
             rootView: IslandView(
                 store: taskStore,
                 presentationState: presentationState,
+                services: services,
                 onHeightChange: { [weak self] newHeight in
                     self?.updateContentHeight(newHeight)
                 },

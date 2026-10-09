@@ -9,7 +9,11 @@ final class TaskStore: ObservableObject {
         didSet {
             trackingCache = nil
             deferralCountsCache = nil
+            habitStatsCache = nil
         }
+    }
+    @Published private(set) var habits: [Habit] = [] {
+        didSet { habitStatsCache = nil }
     }
     @Published var selectedDate: Date {
         didSet {
@@ -23,22 +27,29 @@ final class TaskStore: ObservableObject {
     @Published var autoSlidingTaskID: UUID? = nil
     private var trackingCache: (today: Date, summary: TrackingSummary)?
     private var deferralCountsCache: [UUID: Int]?
+    private var habitStatsCache: (today: Date, stats: [UUID: HabitStats])?
     private var demoteWorkItems: [UUID: DispatchWorkItem] = [:]
     private var promoteWorkItems: [UUID: DispatchWorkItem] = [:]
 
     private let persistence: TaskPersisting
+    private let habitPersistence: HabitPersisting
     let dateService: DateService
 
     init(
         persistence: TaskPersisting? = nil,
-        dateService: DateService? = nil
+        dateService: DateService? = nil,
+        habitPersistence: HabitPersisting? = nil
     ) {
         let dateSvc = dateService ?? DateService()
         self.dateService = dateSvc
         self.selectedDate = dateSvc.today
         self.persistence = persistence ?? PersistenceController()
+        // Without an explicit store, mirror the tasks store: real disk for the real app, memory for tests.
+        self.habitPersistence = habitPersistence ?? (persistence == nil ? HabitPersistenceController() : InMemoryHabitPersistence())
 
         loadAllTasks()
+        loadHabits()
+        ensureHabitOccurrences()
 
         self.dateService.onDayChanged = { [weak self] newToday in
             guard let self else { return }
@@ -46,6 +57,7 @@ final class TaskStore: ObservableObject {
             if self.dateService.isToday(self.selectedDate) {
                 self.selectedDate = newToday
             }
+            self.ensureHabitOccurrences()
         }
     }
 
@@ -115,25 +127,42 @@ final class TaskStore: ObservableObject {
     // MARK: - Task Mutations
 
     @discardableResult
-    func addTask(title: String, for date: Date? = nil) -> TaskItem? {
+    func addTask(title: String, for date: Date? = nil, tags: [String] = []) -> TaskItem? {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             return nil
         }
 
         let targetDate = dateService.normalize(date ?? selectedDate)
-        let currentDayTasks = tasks(for: targetDate)
-        let maxSortOrder = currentDayTasks.map(\.sortOrder).max() ?? -1
-        let newTask = TaskItem(
+        let newTask = insertAfterLastOpen(TaskItem(
             title: trimmed,
             status: .todo,
             scheduledDate: targetDate,
-            sortOrder: maxSortOrder + 1
-        )
-
-        allTasks.append(newTask)
+            tags: Self.normalizedTags(tags)
+        ))
         persist()
         return newTask
+    }
+
+    /// Puts a new goal on its day right after the last open one (to do or in progress).
+    /// Finished goals slide to the bottom of the list, so appending at the very end would bury
+    /// a fresh goal under them. With nothing open, it goes first. Positions stay contiguous.
+    private func insertAfterLastOpen(_ task: TaskItem) -> TaskItem {
+        let day = dateService.normalize(task.scheduledDate)
+        let dayTasks = tasks(for: day)
+        let insertIndex = (dayTasks.lastIndex { $0.status == .todo || $0.status == .inProgress } ?? -1) + 1
+
+        for (position, item) in dayTasks.enumerated() {
+            let order = position < insertIndex ? position : position + 1
+            if let global = allTasks.firstIndex(where: { $0.id == item.id }), allTasks[global].sortOrder != order {
+                allTasks[global].sortOrder = order
+            }
+        }
+
+        var placed = task
+        placed.sortOrder = insertIndex
+        allTasks.append(placed)
+        return placed
     }
 
     func updateTaskStatus(id: UUID, newStatus: TaskStatus) {
@@ -224,12 +253,27 @@ final class TaskStore: ObservableObject {
         let task = allTasks[index]
         let nextDay = dateService.nextDay(after: task.scheduledDate)
 
+        // A habit that already has its own occurrence on the next day is just skipped today:
+        // a second copy tomorrow would only duplicate it.
+        if let habitID = task.habitID,
+           task.status != .done, task.status != .deferred,
+           allTasks.contains(where: { $0.habitID == habitID && dateService.normalize($0.scheduledDate) == nextDay }) {
+            allTasks[index].status = .deferred
+            allTasks[index].deferredAt = Date()
+            allTasks[index].isTheOne = false
+            allTasks[index].updatedAt = Date()
+            persist()
+            return
+        }
+
         let result = TaskRolloverService.deferTask(task, to: nextDay)
         switch result {
-        case .success(let updatedTask, var newDeferredTask):
+        case .success(var updatedTask, var newDeferredTask):
             let nextDayTasks = tasks(for: nextDay)
             let maxOrder = nextDayTasks.map(\.sortOrder).max() ?? -1
             newDeferredTask.sortOrder = maxOrder + 1
+            // A goal that moved on is no longer today's most important one.
+            updatedTask.isTheOne = false
             allTasks[index] = updatedTask
             allTasks.append(newDeferredTask)
             persist()
@@ -453,11 +497,391 @@ final class TaskStore: ObservableObject {
     func deleteTask(id: UUID) {
         cancelAutoDemote(for: id)
         cancelAutoPromote(for: id)
+        // Deleting a habit occurrence means "not this day": remember it so it is not recreated.
+        if let task = allTasks.first(where: { $0.id == id }),
+           let habitID = task.habitID,
+           let habitIndex = habits.firstIndex(where: { $0.id == habitID }) {
+            let day = dateService.normalize(task.scheduledDate)
+            if !habits[habitIndex].skippedDays.contains(day) {
+                habits[habitIndex].skippedDays.append(day)
+                persistHabits()
+            }
+        }
         let initialCount = allTasks.count
         allTasks.removeAll { $0.id == id }
         if allTasks.count != initialCount {
             persist()
         }
+    }
+
+    // MARK: - Tags
+
+    static func normalizedTags(_ raw: [String]) -> [String] {
+        var result: [String] = []
+        for tag in raw {
+            if let normalized = TagNormalizer.normalize(tag), !result.contains(normalized) {
+                result.append(normalized)
+            }
+        }
+        return result
+    }
+
+    func addTag(_ raw: String, to id: UUID) {
+        guard let tag = TagNormalizer.normalize(raw),
+              let index = allTasks.firstIndex(where: { $0.id == id }),
+              !allTasks[index].tags.contains(tag) else { return }
+        allTasks[index].tags.append(tag)
+        allTasks[index].updatedAt = Date()
+        persist()
+    }
+
+    func removeTag(_ tag: String, from id: UUID) {
+        guard let index = allTasks.firstIndex(where: { $0.id == id }),
+              allTasks[index].tags.contains(tag) else { return }
+        allTasks[index].tags.removeAll { $0 == tag }
+        allTasks[index].updatedAt = Date()
+        persist()
+    }
+
+    /// Every tag in use, most used first, then alphabetical.
+    var allTagNames: [String] {
+        tagUsage.map(\.tag)
+    }
+
+    var tagUsage: [(tag: String, count: Int)] {
+        var counts: [String: Int] = [:]
+        for task in allTasks { for tag in task.tags { counts[tag, default: 0] += 1 } }
+        for habit in habits { for tag in habit.tags where counts[tag] == nil { counts[tag] = 0 } }
+        return counts
+            .map { (tag: $0.key, count: $0.value) }
+            .sorted { $0.count != $1.count ? $0.count > $1.count : $0.tag < $1.tag }
+    }
+
+    /// The user's tags with a few recent goals each. Given to the on-device model so tags can be
+    /// inferred from what *this* person means by "work" or "brain", not from a generic guess.
+    func tagVocabulary(maxTags: Int = 10, examplesPerTag: Int = 3) -> [TagVocabularyEntry] {
+        let recentFirst = allTasks.sorted { $0.createdAt > $1.createdAt }
+        return tagUsage
+            .filter { $0.count > 0 }
+            .prefix(maxTags)
+            .map { entry in
+                var seen = Set<String>()
+                let examples = recentFirst
+                    .filter { $0.tags.contains(entry.tag) && $0.title.count <= 80 }
+                    .compactMap { task -> String? in
+                        seen.insert(task.title.lowercased()).inserted ? task.title : nil
+                    }
+                    .prefix(examplesPerTag)
+                return TagVocabularyEntry(tag: entry.tag, examples: Array(examples))
+            }
+    }
+
+    func deleteTagEverywhere(_ tag: String) {
+        for index in allTasks.indices where allTasks[index].tags.contains(tag) {
+            allTasks[index].tags.removeAll { $0 == tag }
+        }
+        var habitsChanged = false
+        for index in habits.indices where habits[index].tags.contains(tag) {
+            habits[index].tags.removeAll { $0 == tag }
+            habitsChanged = true
+        }
+        persist()
+        if habitsChanged { persistHabits() }
+    }
+
+    // MARK: - Notes & subtasks
+
+    func updateNote(id: UUID, note: String?) {
+        guard let index = allTasks.firstIndex(where: { $0.id == id }) else { return }
+        let trimmed = note?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let value = (trimmed?.isEmpty ?? true) ? nil : trimmed
+        guard allTasks[index].note != value else { return }
+        allTasks[index].note = value
+        allTasks[index].updatedAt = Date()
+        persist()
+    }
+
+    func addSubtask(to id: UUID, title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let index = allTasks.firstIndex(where: { $0.id == id }) else { return }
+        allTasks[index].subtasks.append(SubTask(title: trimmed))
+        allTasks[index].updatedAt = Date()
+        persist()
+    }
+
+    func toggleSubtask(taskID: UUID, subtaskID: UUID) {
+        mutateSubtask(taskID: taskID, subtaskID: subtaskID) { $0.isDone.toggle() }
+    }
+
+    func renameSubtask(taskID: UUID, subtaskID: UUID, title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        mutateSubtask(taskID: taskID, subtaskID: subtaskID) { $0.title = trimmed }
+    }
+
+    func deleteSubtask(taskID: UUID, subtaskID: UUID) {
+        guard let index = allTasks.firstIndex(where: { $0.id == taskID }) else { return }
+        allTasks[index].subtasks.removeAll { $0.id == subtaskID }
+        allTasks[index].updatedAt = Date()
+        persist()
+    }
+
+    private func mutateSubtask(taskID: UUID, subtaskID: UUID, _ change: (inout SubTask) -> Void) {
+        guard let index = allTasks.firstIndex(where: { $0.id == taskID }),
+              let subIndex = allTasks[index].subtasks.firstIndex(where: { $0.id == subtaskID }) else { return }
+        change(&allTasks[index].subtasks[subIndex])
+        allTasks[index].updatedAt = Date()
+        persist()
+    }
+
+    // MARK: - The One
+
+    func theOne(for date: Date? = nil) -> TaskItem? {
+        tasks(for: date ?? selectedDate).first { $0.isTheOne && $0.status != .deferred }
+    }
+
+    /// One per day: choosing a new one clears the previous, and it moves to the top of the list.
+    func setTheOne(id: UUID) {
+        guard let index = allTasks.firstIndex(where: { $0.id == id }),
+              allTasks[index].status != .deferred else { return }
+        let day = dateService.normalize(allTasks[index].scheduledDate)
+
+        for other in allTasks.indices where other != index
+            && allTasks[other].isTheOne
+            && dateService.normalize(allTasks[other].scheduledDate) == day {
+            allTasks[other].isTheOne = false
+        }
+        allTasks[index].isTheOne = true
+        allTasks[index].updatedAt = Date()
+
+        var ordered = tasks(for: day).filter { $0.id != id }
+        ordered.insert(allTasks[index], at: 0)
+        for (order, item) in ordered.enumerated() {
+            if let global = allTasks.firstIndex(where: { $0.id == item.id }) {
+                allTasks[global].sortOrder = order
+            }
+        }
+        persist()
+    }
+
+    func clearTheOne(id: UUID) {
+        guard let index = allTasks.firstIndex(where: { $0.id == id }), allTasks[index].isTheOne else { return }
+        allTasks[index].isTheOne = false
+        allTasks[index].updatedAt = Date()
+        persist()
+    }
+
+    func toggleTheOne(id: UUID) {
+        guard let task = allTasks.first(where: { $0.id == id }) else { return }
+        if task.isTheOne { clearTheOne(id: id) } else { setTheOne(id: id) }
+    }
+
+    // MARK: - Habits
+
+    @discardableResult
+    func addHabit(title: String, schedule: HabitSchedule, tags: [String] = [], startDate: Date? = nil) -> Habit? {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let habit = Habit(
+            title: trimmed,
+            schedule: schedule,
+            startDate: dateService.normalize(startDate ?? selectedDate),
+            tags: Self.normalizedTags(tags)
+        )
+        habits.append(habit)
+        persistHabits()
+        ensureHabitOccurrences()
+        return habit
+    }
+
+    /// Changes the weekdays of a habit. Open occurrences that no longer fit are dropped and the new
+    /// days are filled in. Finished ones, moved exceptions and anything the user added a note,
+    /// steps or The One to stay where they are.
+    func updateHabitSchedule(id: UUID, schedule: HabitSchedule) {
+        guard let index = habits.firstIndex(where: { $0.id == id }), habits[index].schedule != schedule else { return }
+        habits[index].schedule = schedule
+
+        let calendar = dateService.currentCalendar
+        let today = dateService.today
+        allTasks.removeAll { task in
+            task.habitID == id
+                && task.sourceTaskID == nil
+                && task.status == .todo
+                && task.note == nil
+                && task.subtasks.isEmpty
+                && !task.isTheOne
+                && dateService.normalize(task.scheduledDate) >= today
+                && !schedule.isScheduled(on: task.scheduledDate, calendar: calendar)
+        }
+        persist()
+        persistHabits()
+        ensureHabitOccurrences()
+    }
+
+    /// Stops a habit. Open occurrences from today on disappear; finished ones stay as normal goals.
+    func deleteHabit(id: UUID) {
+        guard habits.contains(where: { $0.id == id }) else { return }
+        let today = dateService.today
+        allTasks.removeAll {
+            $0.habitID == id && $0.status != .done && dateService.normalize($0.scheduledDate) >= today
+        }
+        for index in allTasks.indices where allTasks[index].habitID == id {
+            allTasks[index].habitID = nil
+        }
+        habits.removeAll { $0.id == id }
+        persist()
+        persistHabits()
+    }
+
+    /// Creates the missing occurrences from the last seven days to the next seven, the same
+    /// range the day navigation allows. Safe to call as often as needed.
+    func ensureHabitOccurrences() {
+        guard !habits.isEmpty else { return }
+        let calendar = dateService.currentCalendar
+        let today = dateService.today
+        let windowStart = dateService.normalize(calendar.date(byAdding: .day, value: -7, to: today) ?? today)
+        let windowEnd = dateService.normalize(calendar.date(byAdding: .day, value: 7, to: today) ?? today)
+
+        var existing = Set<String>()
+        for task in allTasks {
+            if let habitID = task.habitID {
+                existing.insert("\(habitID.uuidString)|\(dateService.normalize(task.scheduledDate).timeIntervalSince1970)")
+            }
+        }
+
+        var createdAny = false
+        for habit in habits {
+            let skipped = Set(habit.skippedDays.map { dateService.normalize($0) })
+            var day = max(dateService.normalize(habit.startDate), windowStart)
+            while day <= windowEnd {
+                let key = "\(habit.id.uuidString)|\(day.timeIntervalSince1970)"
+                if habit.schedule.isScheduled(on: day, calendar: calendar), !skipped.contains(day), !existing.contains(key) {
+                    _ = insertAfterLastOpen(TaskItem(
+                        title: habit.title,
+                        status: .todo,
+                        scheduledDate: day,
+                        tags: habit.tags,
+                        habitID: habit.id
+                    ))
+                    existing.insert(key)
+                    createdAny = true
+                }
+                day = dateService.nextDay(after: day)
+            }
+        }
+        guard createdAny else { return }
+        persist()
+    }
+
+    func habit(for id: UUID?) -> Habit? {
+        guard let id else { return nil }
+        return habits.first { $0.id == id }
+    }
+
+    func habitStats(for id: UUID) -> HabitStats {
+        let today = dateService.today
+        if let cached = habitStatsCache, cached.today == today {
+            return cached.stats[id] ?? .empty
+        }
+        let byID = Dictionary(allTasks.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var occurrences: [UUID: [Date: TaskStatus]] = [:]
+        for task in allTasks {
+            guard let habitID = task.habitID else { continue }
+            occurrences[habitID, default: [:]][dateService.normalize(task.scheduledDate)] = effectiveHabitStatus(of: task, in: byID, today: today)
+        }
+        let calendar = dateService.currentCalendar
+        var stats: [UUID: HabitStats] = [:]
+        for habit in habits {
+            stats[habit.id] = HabitCalculator.stats(
+                for: habit,
+                occurrences: occurrences[habit.id] ?? [:],
+                today: today,
+                calendar: calendar
+            )
+        }
+        habitStatsCache = (today, stats)
+        return stats[id] ?? .empty
+    }
+
+    /// What an occurrence means for the streak. A moved occurrence is judged by where it ended up:
+    /// done there counts as done on its original day, still open is "not yet" (shown as
+    /// `.deferred`, which the streak ignores), and anything else is a miss.
+    private func effectiveHabitStatus(of task: TaskItem, in byID: [UUID: TaskItem], today: Date) -> TaskStatus {
+        guard task.status == .deferred else { return task.status }
+
+        var cursor = task
+        var hops = 0
+        while cursor.status == .deferred, hops < 60,
+              let next = cursor.deferredToTaskID.flatMap({ byID[$0] }) {
+            cursor = next
+            hops += 1
+        }
+
+        switch cursor.status {
+        case .done:
+            return .done
+        case .todo, .inProgress:
+            return dateService.normalize(cursor.scheduledDate) >= today ? .deferred : .todo
+        case .deferred:
+            // The chain ends without a copy: the day was skipped.
+            return .todo
+        }
+    }
+
+    private func loadHabits() {
+        do {
+            habits = try habitPersistence.loadHabits()
+        } catch {
+            lastErrorMessage = "Failed to load habits: \(error.localizedDescription)"
+        }
+    }
+
+    private func persistHabits() {
+        do {
+            try habitPersistence.saveHabits(habits)
+        } catch {
+            lastErrorMessage = "Failed to save habits: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - Day wrap-up
+
+    /// Open goals that can be pushed to tomorrow. Habits stay out: they live and die with their day.
+    func wrapUpCandidates(for date: Date? = nil) -> [TaskItem] {
+        tasks(for: date ?? selectedDate).filter {
+            ($0.status == .todo || $0.status == .inProgress) && $0.habitID == nil
+        }
+    }
+
+    /// Moves every open goal of the day to tomorrow. Returns the ids so the move can be undone.
+    @discardableResult
+    func deferRemaining(for date: Date? = nil) -> [UUID] {
+        let ids = wrapUpCandidates(for: date).map(\.id)
+        for id in ids { deferTask(id: id) }
+        return ids
+    }
+
+    /// Brings goals moved by `deferRemaining` back; their tomorrow copies are removed if untouched.
+    func undoDeferral(ids: [UUID]) {
+        for id in ids { updateTaskStatus(id: id, newStatus: .todo) }
+    }
+
+    func daySummary(for date: Date? = nil) -> DaySummary {
+        let day = dateService.normalize(date ?? selectedDate)
+        let dayTasks = tasks(for: day)
+        let progress = TaskProgress(tasks: dayTasks)
+        let theOne = dayTasks.first { $0.isTheOne && $0.status != .deferred }
+        let summary = tracking
+        return DaySummary(
+            total: progress.totalCount,
+            done: progress.completedCount,
+            remainingGoals: dayTasks.filter { ($0.status == .todo || $0.status == .inProgress) && $0.habitID == nil }.count,
+            remainingHabits: dayTasks.filter { ($0.status == .todo || $0.status == .inProgress) && $0.habitID != nil }.count,
+            theOneTitle: theOne?.title,
+            theOneDone: theOne?.status == .done,
+            streak: summary.currentStreak,
+            isStreakCountedToday: summary.isTodayCounted
+        )
     }
 
     // MARK: - Date Navigation

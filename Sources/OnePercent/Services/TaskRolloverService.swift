@@ -45,7 +45,14 @@ struct TaskRolloverService {
             updatedAt: now,
             sourceTaskID: task.id,
             deferredToTaskID: nil,
-            deferredAt: nil
+            deferredAt: nil,
+            // Details travel with the goal; "The One" is a fresh choice for the new day.
+            tags: task.tags,
+            note: task.note,
+            subtasks: task.subtasks,
+            // A habit moved to tomorrow stays a habit occurrence, as a one-off: it still counts
+            // for the streak, but the schedule itself never changes.
+            habitID: task.habitID
         )
 
         return .success(updatedTask: updatedOriginal, newDeferredTask: newDeferred)

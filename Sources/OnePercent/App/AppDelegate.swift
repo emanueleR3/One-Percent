@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let dependencies = AppDependencies()
         self.dependencies = dependencies
         dependencies.notchWindowController.start()
+        dependencies.reminders?.start()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -21,6 +21,9 @@ enum IslandPalette {
     /// Warm orange reserved for streaks and the "moved again" nudge, distinct from the in-progress amber.
     static let streakAccent = Color(red: 255.0 / 255.0, green: 150.0 / 255.0, blue: 88.0 / 255.0)
 
+    /// Cool periwinkle for "The One": nothing else in the palette is blue-violet.
+    static let theOneAccent = Color(red: 150.0 / 255.0, green: 165.0 / 255.0, blue: 255.0 / 255.0)
+
     // MARK: - Surface tokens
     //
     // The panel melts into the physical notch, so it starts at pure black and only lifts a

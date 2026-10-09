@@ -4,11 +4,22 @@ import SwiftUI
 struct TaskStatusMenu<LabelContent: View>: View {
     let currentStatus: TaskStatus
     let onSelectStatus: (TaskStatus) -> Void
+    var onOpenDetails: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
     @ViewBuilder let label: () -> LabelContent
 
     var body: some View {
         Menu {
+            if let onOpenDetails {
+                Section {
+                    Button {
+                        onOpenDetails()
+                    } label: {
+                        Label("Details…", systemImage: "list.bullet.indent")
+                    }
+                }
+            }
+
             Section {
                 Button {
                     onSelectStatus(.todo)

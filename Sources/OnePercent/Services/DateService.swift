@@ -50,6 +50,12 @@ final class DateService: ObservableObject {
         }
     }
 
+    /// `yyyy-MM-dd` in the local calendar. Stable key for "once per day" state.
+    func dayKey(for date: Date) -> String {
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
     func normalize(_ date: Date) -> Date {
         calendar.startOfDay(for: date)
     }

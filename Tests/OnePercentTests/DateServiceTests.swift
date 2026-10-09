@@ -154,3 +154,14 @@ final class DateServiceTests: XCTestCase {
         XCTAssertTrue(dateService.canNavigateNext(from: future6))
     }
 }
+
+@MainActor
+final class DateServiceDayKeyTests: XCTestCase {
+    func testDayKeyIsZeroPaddedAndLocal() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let service = DateService(calendar: cal)
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 5, hour: 23, minute: 59))!
+        XCTAssertEqual(service.dayKey(for: date), "2026-03-05")
+    }
+}

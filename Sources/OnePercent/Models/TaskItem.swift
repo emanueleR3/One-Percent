@@ -1,5 +1,18 @@
 import Foundation
 
+/// Checklist item nested inside a goal.
+struct SubTask: Identifiable, Codable, Equatable, Sendable {
+    let id: UUID
+    var title: String
+    var isDone: Bool
+
+    init(id: UUID = UUID(), title: String, isDone: Bool = false) {
+        self.id = id
+        self.title = title
+        self.isDone = isDone
+    }
+}
+
 /// Core task occurrence entity defined in ONE_PERCENT_SPEC.md (Section 5.1)
 /// Distinct occurrences possess unique identifiers; identical titles on different occurrences
 /// or dates are explicitly preserved and not treated as duplicates.
@@ -15,6 +28,15 @@ struct TaskItem: Identifiable, Codable, Equatable, Sendable {
     var deferredAt: Date?
     var sortOrder: Int
 
+    /// Lowercase tag names without the leading `#`. Colors live in `TagPalette`.
+    var tags: [String]
+    var note: String?
+    var subtasks: [SubTask]
+    /// The single most important goal of its day. At most one per day (enforced by `TaskStore`).
+    var isTheOne: Bool
+    /// Set on occurrences generated from a recurring `Habit`.
+    var habitID: UUID?
+
     init(
         id: UUID = UUID(),
         title: String,
@@ -25,7 +47,12 @@ struct TaskItem: Identifiable, Codable, Equatable, Sendable {
         sourceTaskID: UUID? = nil,
         deferredToTaskID: UUID? = nil,
         deferredAt: Date? = nil,
-        sortOrder: Int = 0
+        sortOrder: Int = 0,
+        tags: [String] = [],
+        note: String? = nil,
+        subtasks: [SubTask] = [],
+        isTheOne: Bool = false,
+        habitID: UUID? = nil
     ) {
         self.id = id
         self.title = title
@@ -37,11 +64,17 @@ struct TaskItem: Identifiable, Codable, Equatable, Sendable {
         self.deferredToTaskID = deferredToTaskID
         self.deferredAt = deferredAt
         self.sortOrder = sortOrder
+        self.tags = tags
+        self.note = note
+        self.subtasks = subtasks
+        self.isTheOne = isTheOne
+        self.habitID = habitID
     }
 
     enum CodingKeys: String, CodingKey {
         case id, title, status, scheduledDate, createdAt, updatedAt
         case sourceTaskID, deferredToTaskID, deferredAt, sortOrder
+        case tags, note, subtasks, isTheOne, habitID
     }
 
     init(from decoder: Decoder) throws {
@@ -56,5 +89,15 @@ struct TaskItem: Identifiable, Codable, Equatable, Sendable {
         self.deferredToTaskID = try container.decodeIfPresent(UUID.self, forKey: .deferredToTaskID)
         self.deferredAt = try container.decodeIfPresent(Date.self, forKey: .deferredAt)
         self.sortOrder = try container.decodeIfPresent(Int.self, forKey: .sortOrder) ?? 0
+        // Fields added after v0.0.2: files written by older versions simply lack them.
+        self.tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+        self.note = try container.decodeIfPresent(String.self, forKey: .note)
+        self.subtasks = try container.decodeIfPresent([SubTask].self, forKey: .subtasks) ?? []
+        self.isTheOne = try container.decodeIfPresent(Bool.self, forKey: .isTheOne) ?? false
+        self.habitID = try container.decodeIfPresent(UUID.self, forKey: .habitID)
+    }
+
+    var subtaskProgress: (done: Int, total: Int) {
+        (subtasks.filter(\.isDone).count, subtasks.count)
     }
 }

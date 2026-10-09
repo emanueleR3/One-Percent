@@ -5,7 +5,24 @@ protocol TaskPersisting: Sendable {
     func saveTasks(_ tasks: [TaskItem]) throws
 }
 
+/// Folder shared by every file the app writes (`~/Library/Application Support/OnePercent`).
+enum AppStorageLocation {
+    static func directory(fileManager: FileManager = .default) -> URL {
+        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? fileManager.temporaryDirectory
+        let folderURL = appSupport.appendingPathComponent("OnePercent", isDirectory: true)
+        if !fileManager.fileExists(atPath: folderURL.path) {
+            try? fileManager.createDirectory(at: folderURL, withIntermediateDirectories: true)
+        }
+        return folderURL
+    }
+}
+
 /// Atomically persists and retrieves tasks in local JSON storage (Section 5.4)
+///
+/// Two safety nets, because the first write after a failed read would otherwise destroy the file:
+/// an unreadable `tasks.json` is copied to `tasks.corrupt-<time>.json` before it can be replaced,
+/// and every save keeps the previous version as `tasks.json.bak`.
 final class PersistenceController: TaskPersisting, @unchecked Sendable {
     private let fileURL: URL
     private let fileManager: FileManager
@@ -15,13 +32,7 @@ final class PersistenceController: TaskPersisting, @unchecked Sendable {
         if let fileURL {
             self.fileURL = fileURL
         } else {
-            let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-                ?? fileManager.temporaryDirectory
-            let folderURL = appSupport.appendingPathComponent("OnePercent", isDirectory: true)
-            if !fileManager.fileExists(atPath: folderURL.path) {
-                try? fileManager.createDirectory(at: folderURL, withIntermediateDirectories: true)
-            }
-            self.fileURL = folderURL.appendingPathComponent("tasks.json")
+            self.fileURL = AppStorageLocation.directory(fileManager: fileManager).appendingPathComponent("tasks.json")
         }
     }
 
@@ -32,7 +43,12 @@ final class PersistenceController: TaskPersisting, @unchecked Sendable {
         let data = try Data(contentsOf: fileURL)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([TaskItem].self, from: data)
+        do {
+            return try decoder.decode([TaskItem].self, from: data)
+        } catch {
+            preserveUnreadableFile()
+            throw error
+        }
     }
 
     func saveTasks(_ tasks: [TaskItem]) throws {
@@ -44,6 +60,21 @@ final class PersistenceController: TaskPersisting, @unchecked Sendable {
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(tasks)
+        keepPreviousVersion()
         try data.write(to: fileURL, options: .atomic)
+    }
+
+    private func keepPreviousVersion() {
+        guard fileManager.fileExists(atPath: fileURL.path) else { return }
+        let backup = fileURL.appendingPathExtension("bak")
+        try? fileManager.removeItem(at: backup)
+        try? fileManager.copyItem(at: fileURL, to: backup)
+    }
+
+    private func preserveUnreadableFile() {
+        let stamp = Int(Date().timeIntervalSince1970)
+        let name = fileURL.deletingPathExtension().lastPathComponent
+        let destination = fileURL.deletingLastPathComponent().appendingPathComponent("\(name).corrupt-\(stamp).json")
+        try? fileManager.copyItem(at: fileURL, to: destination)
     }
 }

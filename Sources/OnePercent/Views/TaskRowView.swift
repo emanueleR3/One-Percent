@@ -12,8 +12,10 @@ struct TaskRowView: View {
     var onEditingChanged: ((Bool) -> Void)? = nil
     /// True while the row is being dragged to reorder; draws the raised surface.
     var isLifted: Bool = false
-    /// How many times this occurrence has already been pushed to the next day.
-    var deferralCount: Int = 0
+    /// Small extras shown on the right of the title: moved count, habit streak, tags, steps...
+    var accessories = TaskRowAccessories()
+    var onOpenDetails: (() -> Void)? = nil
+    var onToggleTheOne: (() -> Void)? = nil
 
     @State private var isHovered = false
     @State private var isCheckHovered = false
@@ -29,6 +31,7 @@ struct TaskRowView: View {
             gripHandle
             statusButton
             titleView
+            accessoriesView
             statusControl
         }
         .padding(.horizontal, 4)
@@ -48,6 +51,10 @@ struct TaskRowView: View {
             Button("Tomorrow") { onUpdateStatus(.deferred) }
                 .disabled(task.status == .done)
             Divider()
+            Button(task.isTheOne ? "Remove The One" : "Make The One") { onToggleTheOne?() }
+                .disabled(task.status == .deferred)
+            Button("Details…") { onOpenDetails?() }
+            Divider()
             Button(role: .destructive) { onDelete() } label: {
                 Label("Delete Goal", systemImage: "trash")
             }
@@ -63,14 +70,27 @@ struct TaskRowView: View {
     // MARK: - Subviews
 
     private var rowBackground: some View {
-        RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
-            .fill(isLifted ? IslandPalette.elevatedSurface : (isHovered ? IslandPalette.restFill : Color.clear))
-            .overlay {
-                if isLifted {
-                    RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
-                        .strokeBorder(IslandPalette.hairlineStrong, lineWidth: 0.5)
-                }
+        ZStack {
+            if task.isTheOne && task.status != .deferred {
+                RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
+                    .fill(IslandPalette.theOneAccent.opacity(task.status == .done ? 0.05 : 0.09))
+                    .overlay(alignment: .leading) {
+                        Capsule()
+                            .fill(IslandPalette.theOneAccent)
+                            .frame(width: 2.5, height: 16)
+                            .padding(.leading, 1.5)
+                            .opacity(task.status == .done ? 0.45 : 1)
+                    }
             }
+            RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
+                .fill(isLifted ? IslandPalette.elevatedSurface : (isHovered ? IslandPalette.restFill : Color.clear))
+                .overlay {
+                    if isLifted {
+                        RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
+                            .strokeBorder(IslandPalette.hairlineStrong, lineWidth: 0.5)
+                    }
+                }
+        }
     }
 
     /// Reorder grip. Invisible until the row is hovered so a resting list reads as plain text.
@@ -186,7 +206,7 @@ struct TaskRowView: View {
         } else {
             HStack(spacing: 6) {
                 Text(task.title)
-                    .font(IslandTypography.taskTitle)
+                    .font(task.isTheOne ? IslandTypography.taskTitle.weight(.semibold) : IslandTypography.taskTitle)
                     .foregroundStyle(titleColor)
                     .strikethrough(task.status == .done, color: IslandPalette.tertiaryText)
                     .lineLimit(nil)
@@ -199,18 +219,60 @@ struct TaskRowView: View {
                     }
                     .help("Double click to edit title")
                     .accessibilityLabel(accessibilityDescription)
-
-                if showsMovedBadge {
-                    MovedBadgeView(count: deferralCount)
-                }
             }
         }
     }
 
+    // MARK: - Accessories
+
     /// Appears from the second push onwards, and only while the goal is still open.
     private var showsMovedBadge: Bool {
-        deferralCount >= 2 && (task.status == .todo || task.status == .inProgress)
+        accessories.deferralCount >= 2 && (task.status == .todo || task.status == .inProgress)
     }
+
+    @ViewBuilder
+    private var accessoriesView: some View {
+        let hasAny = showsMovedBadge || task.habitID != nil || !accessories.tags.isEmpty
+            || !task.subtasks.isEmpty || task.note != nil || task.isTheOne
+
+        if hasAny {
+            Button {
+                onOpenDetails?()
+            } label: {
+                HStack(spacing: 7) {
+                    if showsMovedBadge {
+                        MovedBadgeView(count: accessories.deferralCount)
+                    }
+                    if task.habitID != nil {
+                        HabitChip(streak: accessories.habitStreak ?? 0)
+                    }
+                    if !accessories.tags.isEmpty {
+                        TagDots(tags: accessories.tags)
+                    }
+                    if !task.subtasks.isEmpty {
+                        StepsChip(progress: task.subtaskProgress)
+                    }
+                    if task.note != nil {
+                        Image(systemName: "text.alignleft")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(IslandPalette.tertiaryText)
+                            .help("Has a note")
+                    }
+                    if task.isTheOne {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 9.5, weight: .semibold))
+                            .foregroundStyle(IslandPalette.theOneAccent)
+                            .help("The One: the goal that matters most today")
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Open details")
+            .accessibilityLabel("Open details for \(task.title)")
+        }
+    }
+
 
     /// Trailing status control. Active states (in progress / tomorrow) keep a tinted chip so they
     /// stay scannable; to do / done only reveal an ellipsis on hover.
@@ -218,6 +280,7 @@ struct TaskRowView: View {
         TaskStatusMenu(
             currentStatus: task.status,
             onSelectStatus: onUpdateStatus,
+            onOpenDetails: onOpenDetails,
             onDelete: onDelete
         ) {
             switch task.status {
@@ -438,5 +501,67 @@ private struct MovedBadgeView: View {
         .fixedSize()
         .help("Moved to tomorrow \(count) times")
         .accessibilityLabel("Moved to tomorrow \(count) times")
+    }
+}
+
+/// Per-row extras computed by the list so the row itself stays a dumb view.
+struct TaskRowAccessories: Equatable {
+    var deferralCount: Int = 0
+    /// Nil for ordinary goals; the current streak (possibly 0) for habit occurrences.
+    var habitStreak: Int? = nil
+    var tags: [TagDisplay] = []
+}
+
+private struct HabitChip: View {
+    let streak: Int
+
+    var body: some View {
+        HStack(spacing: 2.5) {
+            Image(systemName: "repeat")
+                .font(.system(size: 8.5, weight: .bold))
+            if streak > 0 {
+                Text("\(streak)")
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+            }
+        }
+        .foregroundStyle(streak > 0 ? IslandPalette.streakAccent : IslandPalette.tertiaryText)
+        .help(streak > 0 ? "Habit · \(streak)-day streak" : "Habit")
+    }
+}
+
+private struct TagDots: View {
+    let tags: [TagDisplay]
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(tags.prefix(3)) { tag in
+                Circle()
+                    .fill(tag.color)
+                    .frame(width: 6.5, height: 6.5)
+            }
+            if tags.count > 3 {
+                Text("+\(tags.count - 3)")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(IslandPalette.tertiaryText)
+            }
+        }
+        .help(tags.map(\.name).joined(separator: ", "))
+    }
+}
+
+private struct StepsChip: View {
+    let progress: (done: Int, total: Int)
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "checklist")
+                .font(.system(size: 9, weight: .semibold))
+            Text("\(progress.done)/\(progress.total)")
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+        }
+        .foregroundStyle(progress.done == progress.total ? IslandPalette.completedAccent : IslandPalette.tertiaryText)
+        .help("\(progress.done) of \(progress.total) steps done")
     }
 }

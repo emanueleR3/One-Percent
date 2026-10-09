@@ -5,12 +5,14 @@ import AppKit
 final class MenuBarController: NSObject, NSMenuDelegate {
     private var statusItem: NSStatusItem?
     private weak var notchWindowController: NotchWindowController?
+    private let preferences: AppPreferences
     private let menu = NSMenu()
     private var toggleVisibilityMenuItem: NSMenuItem?
     private var hoverToggleMenuItem: NSMenuItem?
 
-    init(notchWindowController: NotchWindowController) {
+    init(notchWindowController: NotchWindowController, preferences: AppPreferences) {
         self.notchWindowController = notchWindowController
+        self.preferences = preferences
         super.init()
         setupStatusItem()
     }
@@ -43,7 +45,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         self.toggleVisibilityMenuItem = toggleItem
         menu.addItem(toggleItem)
 
-        let isHoverEnabled = notchWindowController?.isHoverEnabled ?? true
+        let isHoverEnabled = preferences.openOnHover
         let hoverItem = NSMenuItem(
             title: "Open on Hover",
             action: #selector(toggleHoverAction),
@@ -71,7 +73,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         toggleVisibilityMenuItem?.title = isPanelVisible ? "Hide One Percent" : "Show One Percent"
-        hoverToggleMenuItem?.state = (notchWindowController?.isHoverEnabled ?? true) ? .on : .off
+        hoverToggleMenuItem?.state = preferences.openOnHover ? .on : .off
     }
 
     @objc private func togglePanelAction() {
@@ -79,8 +81,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     @objc private func toggleHoverAction() {
-        guard let controller = notchWindowController else { return }
-        controller.isHoverEnabled.toggle()
-        hoverToggleMenuItem?.state = controller.isHoverEnabled ? .on : .off
+        preferences.openOnHover.toggle()
+        hoverToggleMenuItem?.state = preferences.openOnHover ? .on : .off
     }
 }
