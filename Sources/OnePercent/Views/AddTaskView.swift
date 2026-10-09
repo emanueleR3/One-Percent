@@ -58,7 +58,7 @@ struct AddTaskView: View {
             .accessibilityLabel("Cancel adding goal")
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
         .background(
             RoundedRectangle(cornerRadius: IslandMetrics.rowCornerRadius, style: .continuous)
                 .fill(IslandPalette.primarySurface)

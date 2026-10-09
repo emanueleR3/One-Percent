@@ -7,17 +7,10 @@ struct IslandHeaderView: View {
 
     var body: some View {
         HStack(spacing: IslandMetrics.compact) {
-            // Wordmark with subtle accent indicator
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(IslandPalette.completedAccent)
-                    .frame(width: 6, height: 6)
-                    .accessibilityHidden(true)
-
-                Text("One Percent")
-                    .font(IslandTypography.appWordmark)
-                    .foregroundStyle(IslandPalette.primaryText)
-            }
+            // Wordmark
+            Text("One Percent")
+                .font(IslandTypography.appWordmark)
+                .foregroundStyle(IslandPalette.primaryText)
 
             Spacer(minLength: 4)
 

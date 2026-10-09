@@ -17,6 +17,18 @@ struct IslandView: View {
     var onInteractionChange: ((Bool) -> Void)? = nil
 
     @State private var isAddingTask = false
+    @State private var draggedTaskID: UUID? = nil
+    @State private var draggedSourceIndex: Int? = nil
+    @State private var targetIndex: Int? = nil
+    @State private var dragOffset: CGFloat = 0
+    @State private var rowFrames: [UUID: CGRect] = [:]
+    @State private var snapshotFrames: [UUID: CGRect] = [:]
+    @State private var snapshotTasks: [TaskItem] = []
+
+    private let maxVisibleTasksCount = 5
+    private let taskRowApproxHeight: CGFloat = 28
+    private let rowSpacing: CGFloat = 2.5
+    @Namespace private var taskListNamespace
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -136,27 +148,77 @@ struct IslandView: View {
                         isAddingTask = true
                     }
                 }
+                .frame(maxWidth: .infinity, minHeight: scrollListMaxHeight)
                 .transition(.opacity)
             } else if !store.selectedDateTasks.isEmpty {
                 ScrollView(.vertical, showsIndicators: true) {
-                    LazyVStack(spacing: IslandMetrics.micro) {
-                        ForEach(store.selectedDateTasks) { task in
+                    VStack(spacing: rowSpacing) {
+                        ForEach(Array(store.selectedDateTasks.enumerated()), id: \.element.id) { index, task in
+                            let isBeingDragged = (draggedTaskID == task.id)
+                            let currentOffset = calculateRowOffset(for: task, index: index, isBeingDragged: isBeingDragged)
+
                             TaskRowView(
                                 task: task,
                                 onUpdateStatus: { newStatus in
                                     store.updateTaskStatus(id: task.id, newStatus: newStatus)
                                 },
+                                onUpdateTitle: { newTitle in
+                                    store.updateTaskTitle(id: task.id, newTitle: newTitle)
+                                },
                                 onDelete: {
                                     withAnimation(IslandAnimations.statusTransition) {
                                         store.deleteTask(id: task.id)
                                     }
+                                },
+                                onDragStarted: {
+                                    draggedTaskID = task.id
+                                    draggedSourceIndex = index
+                                    targetIndex = index
+                                    dragOffset = 0
+                                    snapshotFrames = rowFrames
+                                    snapshotTasks = store.selectedDateTasks
+                                    onInteractionChange?(true)
+                                },
+                                onDragChanged: { translation in
+                                    dragOffset = translation
+                                    updateTargetIndex(translation: translation)
+                                },
+                                onDragEnded: {
+                                    commitReorder()
+                                },
+                                onEditingChanged: { isEditing in
+                                    onInteractionChange?(isEditing)
                                 }
                             )
+                            .matchedGeometryEffect(id: task.id, in: taskListNamespace)
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear.preference(
+                                        key: TaskRowFramePreferenceKey.self,
+                                        value: [task.id: geo.frame(in: .named("TaskList"))]
+                                    )
+                                }
+                            )
+                            .offset(y: currentOffset)
+                            .zIndex(isBeingDragged ? 100 : (store.autoSlidingTaskID == task.id ? 20 : 1))
+                            .scaleEffect(isBeingDragged ? 1.02 : (store.autoSlidingTaskID == task.id ? 1.01 : 1.0))
+                            .shadow(
+                                color: isBeingDragged ? Color.black.opacity(0.4) : (store.autoSlidingTaskID == task.id ? Color.black.opacity(0.25) : Color.clear),
+                                radius: isBeingDragged ? 4 : (store.autoSlidingTaskID == task.id ? 3 : 0),
+                                x: 0,
+                                y: isBeingDragged ? 2 : (store.autoSlidingTaskID == task.id ? 1 : 0)
+                            )
+                            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: targetIndex)
                         }
                     }
                     .padding(.vertical, 2)
+                    .animation(.spring(response: 0.55, dampingFraction: 0.82), value: store.selectedDateTasks)
                 }
                 .scrollBounceBehavior(.basedOnSize)
+                .coordinateSpace(name: "TaskList")
+                .onPreferenceChange(TaskRowFramePreferenceKey.self) { preferences in
+                    self.rowFrames = preferences
+                }
                 .frame(maxHeight: scrollListMaxHeight)
             }
         }
@@ -171,22 +233,127 @@ struct IslandView: View {
     }
 
     private var scrollListMaxHeight: CGFloat {
-        IslandMetrics.maxPanelHeight - 130
+        CGFloat(maxVisibleTasksCount) * taskRowApproxHeight + 8
     }
 
     private var desiredPanelHeight: CGFloat {
-        let baseHeaderAndPadding: CGFloat = 112
-        let addEditorHeight: CGFloat = isAddingTask ? 44 : 0
+        let baseHeight = IslandMetrics.standardPanelHeight
         let errorHeight: CGFloat = store.lastErrorMessage != nil ? 32 : 0
-        let listHeight: CGFloat
-        if store.selectedDateTasks.isEmpty {
-            listHeight = isAddingTask ? 0 : 80
-        } else {
-            let rowHeight: CGFloat = 37
-            listHeight = CGFloat(store.selectedDateTasks.count) * rowHeight
+        return min(IslandMetrics.maxPanelHeight, baseHeight + errorHeight)
+    }
+
+    private func updateTargetIndex(translation: CGFloat) {
+        guard let sIdx = draggedSourceIndex,
+              let draggedID = draggedTaskID,
+              !snapshotTasks.isEmpty else { return }
+
+        let count = snapshotTasks.count
+        guard count > 1 else { return }
+
+        let avgPitch: CGFloat = taskRowApproxHeight + rowSpacing
+        let startCenterY = snapshotFrames[draggedID]?.midY ?? (CGFloat(sIdx) * avgPitch + avgPitch / 2)
+        let currentCenterY = startCenterY + translation
+
+        func slotCenter(for idx: Int) -> CGFloat {
+            let item = snapshotTasks[idx]
+            if let frame = snapshotFrames[item.id] {
+                return frame.midY
+            }
+            return startCenterY + CGFloat(idx - sIdx) * avgPitch
         }
 
-        let total = baseHeaderAndPadding + addEditorHeight + errorHeight + listHeight
-        return min(IslandMetrics.maxPanelHeight, max(IslandMetrics.minPanelHeight, total))
+        var currentTarget = targetIndex ?? sIdx
+
+        if currentCenterY > slotCenter(for: currentTarget) {
+            // User is below current target slot -> evaluating downward movement
+            while currentTarget < count - 1 {
+                let nextSlot = currentTarget + 1
+                let currCenter = slotCenter(for: currentTarget)
+                let nextCenter = slotCenter(for: nextSlot)
+                let threshold = currCenter + (nextCenter - currCenter) * 0.42
+                if currentCenterY > threshold {
+                    currentTarget = nextSlot
+                } else {
+                    break
+                }
+            }
+        } else if currentCenterY < slotCenter(for: currentTarget) {
+            // User is above current target slot -> evaluating upward movement
+            while currentTarget > 0 {
+                let prevSlot = currentTarget - 1
+                let currCenter = slotCenter(for: currentTarget)
+                let prevCenter = slotCenter(for: prevSlot)
+                let threshold = currCenter - (currCenter - prevCenter) * 0.42
+                if currentCenterY < threshold {
+                    currentTarget = prevSlot
+                } else {
+                    break
+                }
+            }
+        }
+
+        currentTarget = min(max(0, currentTarget), count - 1)
+        if targetIndex != currentTarget {
+            targetIndex = currentTarget
+        }
+    }
+
+    private func calculateRowOffset(for task: TaskItem, index: Int, isBeingDragged: Bool) -> CGFloat {
+        if isBeingDragged {
+            return dragOffset
+        }
+
+        guard let sIdx = draggedSourceIndex,
+              let tIdx = targetIndex,
+              let draggedID = draggedTaskID,
+              sIdx != tIdx else {
+            return 0
+        }
+
+        let draggedHeight = (snapshotFrames[draggedID]?.height ?? rowFrames[draggedID]?.height ?? taskRowApproxHeight) + rowSpacing
+
+        if sIdx < tIdx {
+            // Dragging downwards: items between source and target shift up
+            if index > sIdx && index <= tIdx {
+                return -draggedHeight
+            }
+        } else if sIdx > tIdx {
+            // Dragging upwards: items between target and source shift down
+            if index >= tIdx && index < sIdx {
+                return draggedHeight
+            }
+        }
+
+        return 0
+    }
+
+    private func commitReorder() {
+        if let sIdx = draggedSourceIndex,
+           let tIdx = targetIndex,
+           sIdx != tIdx,
+           let draggedID = draggedTaskID {
+            let tasks = store.selectedDateTasks
+            if tIdx >= 0 && tIdx < tasks.count {
+                let destinationID = tasks[tIdx].id
+                store.moveTask(from: draggedID, to: destinationID)
+            }
+        }
+
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+            draggedTaskID = nil
+            draggedSourceIndex = nil
+            targetIndex = nil
+            dragOffset = 0
+            snapshotFrames = [:]
+            snapshotTasks = []
+        }
+        onInteractionChange?(false)
+    }
+}
+
+private struct TaskRowFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [UUID: CGRect] = [:]
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
     }
 }

@@ -13,7 +13,8 @@ enum IslandMetrics {
     static let rowCornerRadius: CGFloat = 10
     static let badgeCornerRadius: CGFloat = 6
 
-    static let minPanelHeight: CGFloat = 170
+    static let minPanelHeight: CGFloat = 160
     static let maxPanelHeight: CGFloat = 420
-    static let panelWidth: CGFloat = 410
+    static let panelWidth: CGFloat = 440
+    static let standardPanelHeight: CGFloat = 264
 }

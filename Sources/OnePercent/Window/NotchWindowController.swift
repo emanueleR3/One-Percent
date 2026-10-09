@@ -11,7 +11,7 @@ final class NotchWindowController {
     private var activationWindow: NSWindow?
     private var notificationTokens: [NSObjectProtocol] = []
     private var visibilityGeneration = 0
-    private var currentPanelHeight: CGFloat = IslandMetrics.minPanelHeight
+    private var currentPanelHeight: CGFloat = IslandMetrics.standardPanelHeight
 
     private let presentationState = IslandPresentationState()
 
@@ -83,6 +83,7 @@ final class NotchWindowController {
             panel.alphaValue = 1
             panel.orderFrontRegardless()
         }
+        panel.makeKey()
 
         withAnimation(IslandAnimations.dropletExpandSpring) {
             presentationState.isExpanded = true
@@ -142,7 +143,7 @@ final class NotchWindowController {
         panel.ignoresMouseEvents = false
         panel.becomesKeyOnlyIfNeeded = false
         panel.acceptsMouseMovedEvents = true
-        panel.contentView = NSHostingView(
+        panel.contentView = FirstMouseHostingView(
             rootView: IslandView(
                 store: taskStore,
                 presentationState: presentationState,
@@ -274,14 +275,15 @@ final class NotchWindowController {
     }
 }
 
+private final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        true
+    }
+}
+
 private final class NotchPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
-
-    override func becomeKey() {
-        super.becomeKey()
-        NSApp.activate(ignoringOtherApps: true)
-    }
 }
 
 private final class ActivationTrackingView: NSView {

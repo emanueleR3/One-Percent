@@ -18,7 +18,7 @@ final class NotchPositionResolverTests: XCTestCase {
         XCTAssertEqual(geometry.activationRect.midX, 756, accuracy: 0.001)
         XCTAssertEqual(geometry.activationRect.minY, 945, accuracy: 0.001)
         XCTAssertEqual(geometry.expandedFrame.maxY, 945, accuracy: 0.001)
-        XCTAssertEqual(geometry.expandedFrame.width, 400, accuracy: 0.001)
+        XCTAssertEqual(geometry.expandedFrame.width, IslandMetrics.panelWidth, accuracy: 0.001)
     }
 
     func testExternalDisplayFallsBackBelowTheMenuBar() {

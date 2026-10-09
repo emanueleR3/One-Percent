@@ -18,8 +18,8 @@ struct NotchGeometry: Equatable {
 /// Resolves all screen coordinates at runtime. No pixel dimensions of a particular MacBook
 /// are assumed; the two public auxiliary areas identify the gap created by a display cutout.
 struct NotchPositionResolver {
-    static let preferredPanelSize = NSSize(width: 400, height: 174)
-    static let activationHorizontalPadding: CGFloat = 16
+    static let preferredPanelSize = NSSize(width: IslandMetrics.panelWidth, height: IslandMetrics.standardPanelHeight)
+    static let activationHorizontalPadding: CGFloat = 4
     static let defaultHeadroom: CGFloat = 24
 
     @MainActor
@@ -67,7 +67,7 @@ struct NotchPositionResolver {
                 height: metrics.safeAreaInsets.top
             )
         } else {
-            let fallbackWidth = min(180, frame.width)
+            let fallbackWidth = min(160, frame.width)
             notchBounds = NSRect(
                 x: frame.midX - (fallbackWidth / 2),
                 y: metrics.visibleFrame.maxY,
@@ -98,10 +98,11 @@ struct NotchPositionResolver {
         )
 
         let activationHeight = max(24, notchBounds.height, frame.maxY - metrics.visibleFrame.maxY)
+        let activationWidth = max(50, min(frame.width, notchBounds.width + activationHorizontalPadding * 2))
         let activationRect = NSRect(
-            x: max(frame.minX, notchBounds.minX - activationHorizontalPadding),
+            x: max(frame.minX, notchBounds.midX - activationWidth / 2),
             y: max(frame.minY, frame.maxY - activationHeight),
-            width: min(frame.width, notchBounds.width + activationHorizontalPadding * 2),
+            width: activationWidth,
             height: activationHeight + 20
         )
 

@@ -41,7 +41,7 @@ struct EmptyStateView: View {
             .help("Add your first goal for this day")
             .accessibilityLabel("Add your first goal")
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.vertical, 10)
     }
 }
