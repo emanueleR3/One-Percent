@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Every pressable control shrinks a touch under the pointer so the UI visibly "hears" the click.
 struct PressScaleButtonStyle: ButtonStyle {

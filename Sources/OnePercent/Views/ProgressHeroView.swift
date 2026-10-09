@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Large percentage with a two-line caption. The numerals roll instead of jumping.
 struct ProgressHeroView: View {

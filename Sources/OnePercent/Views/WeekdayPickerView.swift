@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Seven toggles, one per weekday, in the calendar's own order. Turning a day on or off yields a
 /// `HabitSchedule` (folded to "Every day", "Weekdays" or "Every Friday" when it matches one).

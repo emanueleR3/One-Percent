@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// The "Focus" tab of the stats page: time tracked today and this week, per day, and per goal.
 struct FocusStatsView: View {

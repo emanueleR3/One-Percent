@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Thin daily progress bar per ONE_PERCENT_SPEC.md (Section 8, 11.2). The numbers live in
 /// `ProgressHeroView`; this view is only the glanceable fill.

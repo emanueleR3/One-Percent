@@ -1,5 +1,6 @@
 import Foundation
 import ServiceManagement
+import OnePercentCore
 
 /// Wraps `SMAppService` so Settings can offer "Launch at login". Registration only works for a
 /// real app bundle, so failures are surfaced as text instead of crashing a development build.

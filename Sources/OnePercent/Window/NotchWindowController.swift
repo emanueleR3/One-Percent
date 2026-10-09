@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import QuartzCore
 import SwiftUI
+import OnePercentCore
 
 @MainActor
 final class NotchWindowController {

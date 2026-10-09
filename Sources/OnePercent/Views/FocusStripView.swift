@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Slim bar above the goal list while something is timing: which goal, how long, pause / resume.
 /// In Pomodoro mode it shows the block ("Focus 2 of 4, 18:42 left") and the breaks.

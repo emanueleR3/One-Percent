@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import OnePercentCore
 
 enum NotificationAuthorization: Equatable, Sendable {
     case notDetermined

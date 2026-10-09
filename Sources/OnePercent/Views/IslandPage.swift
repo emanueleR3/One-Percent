@@ -1,4 +1,5 @@
 import Foundation
+import OnePercentCore
 
 /// The four screens that share the space under the progress bar.
 enum IslandPage: Equatable {

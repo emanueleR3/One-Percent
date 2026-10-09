@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Centralized typography definitions per ONE_PERCENT_SPEC.md (Section 10.5)
 enum IslandTypography {

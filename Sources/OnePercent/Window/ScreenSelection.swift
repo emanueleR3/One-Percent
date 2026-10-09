@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import OnePercentCore
 
 /// Which display hosts the notch panel.
 enum ScreenSelection: Equatable, Sendable {

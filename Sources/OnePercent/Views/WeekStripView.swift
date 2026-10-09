@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// The last seven days as mini progress rings. Tap one to open that day.
 struct WeekStripView: View {

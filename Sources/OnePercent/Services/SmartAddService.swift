@@ -1,6 +1,7 @@
 import Foundation
 #if canImport(FoundationModels)
 import FoundationModels
+import OnePercentCore
 #endif
 
 /// What the on-device model understood from a quick-add sentence.

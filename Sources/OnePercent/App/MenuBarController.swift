@@ -1,4 +1,5 @@
 import AppKit
+import OnePercentCore
 
 /// Menu bar status item controller per ONE_PERCENT_SPEC.md (Section 13)
 @MainActor

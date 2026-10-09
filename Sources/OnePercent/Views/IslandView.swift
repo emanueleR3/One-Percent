@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import OnePercentCore
 
 @MainActor
 final class IslandPresentationState: ObservableObject {
@@ -21,6 +22,8 @@ struct IslandView: View {
     var onInteractionChange: ((Bool) -> Void)? = nil
 
     @State private var page: IslandPage = .goals
+    /// A field on the Settings page (the cloud sign-in) has the keyboard.
+    @State private var settingsTyping = false
     @State private var isAddingTask = false
     @State private var draggedTaskID: UUID? = nil
     @State private var draggedSourceIndex: Int? = nil
@@ -87,6 +90,9 @@ struct IslandView: View {
         .onChange(of: needsKeyboard) { _, needs in
             onInteractionChange?(needs)
         }
+        .onChange(of: page) { _, newPage in
+            if newPage != .settings { settingsTyping = false }
+        }
         .onChange(of: presentationState.isExpanded) { _, expanded in
             // Reopen on the goals, not on whichever page was left open.
             if !expanded {
@@ -108,7 +114,7 @@ struct IslandView: View {
 
     /// The panel has to stay open and key while text is being typed.
     private var needsKeyboard: Bool {
-        isAddingTask || page.isDetail
+        isAddingTask || page.isDetail || settingsTyping
     }
 
     private var islandCard: some View {
@@ -145,7 +151,9 @@ struct IslandView: View {
                         preferences: preferences,
                         launchAtLogin: services.launchAtLogin,
                         smartAdd: services.smartAdd,
-                        reminders: services.reminders
+                        reminders: services.reminders,
+                        cloud: services.cloud,
+                        isTyping: $settingsTyping
                     )
                     .transition(pageTransition)
                 case .detail(let id):

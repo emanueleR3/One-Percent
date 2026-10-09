@@ -14,6 +14,8 @@
 "%d goals left" = "%d obiettivi rimasti";
 "%d habit still open" = "%d abitudine ancora aperta";
 "%d habits still open" = "%d abitudini ancora aperte";
+"%d item needs a newer version of One Percent." = "%d elemento richiede una versione più recente di One Percent.";
+"%d items need a newer version of One Percent." = "%d elementi richiedono una versione più recente di One Percent.";
 "%d left" = "%d rimasti";
 "%d of %d" = "%d di %d";
 "%d of %d done" = "%d di %d fatti";
@@ -80,11 +82,14 @@
 "Close goal input" = "Chiudi l'inserimento";
 "Close goal input (Esc)" = "Chiudi l'inserimento (Esc)";
 "Close what you can. The rest can wait until tomorrow." = "Chiudi quello che puoi. Il resto può aspettare domani.";
+"Cloud sync" = "Sincronizzazione cloud";
 "Complete a goal today to keep it." = "Completa un obiettivo oggi per mantenerla.";
 "Confirm clearing tracked time" = "Conferma l'azzeramento del tempo";
 "Confirm delete %@" = "Conferma l'eliminazione di %@";
+"Confirm your email first: check your inbox." = "Conferma prima la tua email: controlla la posta.";
 "Copy" = "Copia";
 "Couldn't change login item: %@" = "Impossibile modificare l'elemento login: %@";
+"Couldn't sign in: %@" = "Accesso non riuscito: %@";
 "Counts while a goal or a Pomodoro block runs" = "Conta mentre un obiettivo o un blocco Pomodoro è in corso";
 "Current date: Today" = "Data corrente: Oggi";
 "Custom" = "Personalizzato";
@@ -105,6 +110,7 @@
 "Double click to edit title" = "Doppio clic per modificare il titolo";
 "Drag to reorder goal" = "Trascina per riordinare";
 "Edit" = "Modifica";
+"Email" = "Email";
 "Evening wrap-up" = "Chiusura serale";
 "Every %@" = "Ogni %@";
 "Every day" = "Ogni giorno";
@@ -138,6 +144,7 @@
 "In progress" = "In corso";
 "Instant" = "Subito";
 "Keep your %d-day streak alive: one goal is enough." = "Mantieni viva la tua serie di %d giorni: basta un obiettivo.";
+"Keep your goals and habits in step with your other devices." = "Tieni obiettivi e abitudini allineati con i tuoi altri dispositivi.";
 "Language" = "Lingua";
 "Last 12 weeks" = "Ultime 12 settimane";
 "Last 7 days" = "Ultimi 7 giorni";
@@ -166,6 +173,7 @@
 "New step" = "Nuovo passaggio";
 "New tag" = "Nuovo tag";
 "Next day" = "Giorno successivo";
+"No connection. Try again in a moment." = "Nessuna connessione. Riprova tra poco.";
 "No goals" = "Nessun obiettivo";
 "No streak yet. Complete a goal today to start one." = "Ancora nessuna serie. Completa un obiettivo oggi per iniziarne una.";
 "No time tracked yet" = "Nessun tempo registrato";
@@ -178,6 +186,7 @@
 "Notifications are blocked for One Percent." = "Le notifiche sono bloccate per One Percent.";
 "Off" = "Spento";
 "Offer to move what's left" = "Proponi di spostare quello che resta";
+"Offline. It will retry by itself." = "Offline. Riproverà da solo.";
 "On" = "Acceso";
 "On displays without a notch" = "Sugli schermi senza notch";
 "One Percent" = "One Percent";
@@ -191,6 +200,7 @@
 "Option" = "Opzione";
 "Overview" = "Panoramica";
 "Panel position" = "Posizione del pannello";
+"Password" = "Password";
 "Paste" = "Incolla";
 "Pause" = "Pausa";
 "Pause the timer" = "Metti in pausa il timer";
@@ -231,6 +241,9 @@
 "Show stats" = "Mostra statistiche";
 "Show the panel when the pointer reaches the notch" = "Mostra il pannello quando il puntatore arriva al notch";
 "Show the timer there" = "Mostra lì il timer";
+"Sign in" = "Accedi";
+"Sign out" = "Esci";
+"Signing in…" = "Accesso in corso…";
 "Skip break" = "Salta la pausa";
 "Small and done beats perfect and skipped." = "Piccolo e fatto batte perfetto e saltato.";
 "Smart quick add" = "Aggiunta rapida intelligente";
@@ -240,6 +253,7 @@
 "Start timer" = "Avvia timer";
 "Start timer for %@" = "Avvia il timer per %@";
 "Start with “%@”. Everything else follows." = "Parti da “%@”. Il resto viene da sé.";
+"Starting…" = "Avvio…";
 "Stats" = "Statistiche";
 "Stats page" = "Pagina statistiche";
 "Stays open after the pointer leaves" = "Resta aperto dopo che il puntatore esce";
@@ -248,6 +262,10 @@
 "Streak" = "Serie";
 "Streak %d · best %d" = "Serie %d · record %d";
 "Streak: %@. Best: %d. %@" = "Serie: %@. Record: %d. %@";
+"Sync now" = "Sincronizza ora";
+"Sync problem: %@" = "Problema di sincronizzazione: %@";
+"Synced at %@" = "Sincronizzato alle %@";
+"Syncing…" = "Sincronizzazione…";
 "System" = "Sistema";
 "TODAY'S GOALS" = "OBIETTIVI DI OGGI";
 "TOMORROW'S GOALS" = "OBIETTIVI DI DOMANI";
@@ -259,7 +277,10 @@
 "The One is open" = "The One è aperto";
 "The One: the goal that matters most today" = "The One: l'obiettivo che conta di più oggi";
 "The built-in display, else the main one" = "Lo schermo integrato, altrimenti quello principale";
+"The first sign-in merges what is on this Mac with the cloud. Nothing is deleted, and a backup is kept." = "Il primo accesso unisce ciò che è su questo Mac con il cloud. Non viene cancellato nulla e resta una copia di backup.";
 "The real notch covers the middle" = "Il notch vero ne copre il centro";
+"The session ended. Sign in again." = "La sessione è scaduta. Accedi di nuovo.";
+"This Mac keeps its goals and habits." = "Questo Mac conserva i suoi obiettivi e le sue abitudini.";
 "Time" = "Ora";
 "Time for a long break: %d minutes." = "È ora di una pausa lunga: %d minuti.";
 "Time is kept when you pause or finish" = "Il tempo si salva in pausa o alla fine";
@@ -286,6 +307,7 @@
 "Where it went" = "Dove è andato";
 "Whichever has the menu bar" = "Quello con la barra dei menu";
 "Width" = "Larghezza";
+"Wrong email or password." = "Email o password errate.";
 "You're moving. %d more and the day is yours." = "Stai andando bene. Altri %d e la giornata è tua.";
 "all moved to tomorrow" = "tutto rimandato a domani";
 "best %d" = "record %d";

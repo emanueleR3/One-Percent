@@ -1,4 +1,5 @@
 import Foundation
+import OnePercentCore
 
 /// Centralized spacing and metric definitions per ONE_PERCENT_SPEC.md (Section 10.6)
 enum IslandMetrics {

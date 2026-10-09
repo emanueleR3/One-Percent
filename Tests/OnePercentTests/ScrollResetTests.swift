@@ -2,6 +2,8 @@ import XCTest
 import SwiftUI
 import AppKit
 @testable import OnePercent
+@testable import OnePercentCore
+import OnePercentTestSupport
 
 @MainActor
 final class ScrollResetTests: XCTestCase {

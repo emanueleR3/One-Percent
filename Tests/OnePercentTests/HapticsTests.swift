@@ -2,6 +2,8 @@ import XCTest
 import SwiftUI
 import AppKit
 @testable import OnePercent
+@testable import OnePercentCore
+import OnePercentTestSupport
 
 /// A click already buzzes the trackpad (press and release), so controls must not add their own.
 @MainActor

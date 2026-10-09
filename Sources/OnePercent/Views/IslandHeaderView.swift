@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Compact header view per ONE_PERCENT_SPEC.md (Section 11.1)
 /// Hero progress on the left; streak, stats, settings and add controls on the right.

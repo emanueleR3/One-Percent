@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Left-to-right layout that wraps onto new lines, for tag chips.
 struct FlowLayout: Layout {

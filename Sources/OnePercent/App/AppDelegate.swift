@@ -1,4 +1,5 @@
 import AppKit
+import OnePercentCore
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {

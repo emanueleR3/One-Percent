@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Single-choice chips in a row (open delay, side of the notch...).
 struct OptionChips<Value: Hashable>: View {

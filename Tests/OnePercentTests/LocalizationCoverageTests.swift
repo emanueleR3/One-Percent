@@ -1,5 +1,7 @@
 import XCTest
 @testable import OnePercent
+@testable import OnePercentCore
+import OnePercentTestSupport
 
 /// Keeps the shipped language packs honest: every string the code asks for exists in both tables,
 /// placeholders line up, and the product names never get translated.
@@ -15,13 +17,13 @@ final class LocalizationCoverageTests: XCTestCase {
 
     /// Every `L("…")` and `Lp("…", "…", …)` literal in the sources.
     private func usedKeys() throws -> Set<String> {
-        let sources = repoRoot.appendingPathComponent("Sources/OnePercent")
-        let files = try XCTUnwrap(FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil))
+        let folders = ["Sources/OnePercent", "Sources/OnePercentCore"].map { repoRoot.appendingPathComponent($0) }
+        let files = folders.compactMap { FileManager.default.enumerator(at: $0, includingPropertiesForKeys: nil) }
         let literal = "\"((?:[^\"\\\\]|\\\\.)*)\""
         let single = try NSRegularExpression(pattern: "\\bL\\(\(literal)")
         let plural = try NSRegularExpression(pattern: "\\bLp\\(\(literal),\\s*\(literal)")
         var keys = Set<String>()
-        for case let url as URL in files where url.pathExtension == "swift" && url.lastPathComponent != "Localizer.swift" {
+        for case let url as URL in files.joined() where url.pathExtension == "swift" && url.lastPathComponent != "Localizer.swift" {
             let text = try String(contentsOf: url, encoding: .utf8)
             let range = NSRange(text.startIndex..., in: text)
             for regex in [single, plural] {

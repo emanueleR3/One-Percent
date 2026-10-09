@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Flame + day count. A filled flame means today is already banked; an outline means one more
 /// goal keeps the streak going. The flame bounces whenever the count goes up.

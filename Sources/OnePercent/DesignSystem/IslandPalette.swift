@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Centralized color palette defined in ONE_PERCENT_SPEC.md (Section 10.2)
 enum IslandPalette {

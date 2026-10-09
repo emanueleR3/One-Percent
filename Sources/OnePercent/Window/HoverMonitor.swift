@@ -1,4 +1,5 @@
 import AppKit
+import OnePercentCore
 
 /// Event-driven hover tracking. A global monitor covers other applications and a local
 /// monitor covers One Percent when a control in the panel becomes key.

@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// What a row or detail page needs to draw one tag.
 struct TagDisplay: Identifiable, Equatable {

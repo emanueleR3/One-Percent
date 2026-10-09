@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Single task occurrence row per ONE_PERCENT_SPEC.md (Section 11.3)
 struct TaskRowView: View {

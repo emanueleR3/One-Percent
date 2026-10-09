@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Combine
+import OnePercentCore
 
 /// What the virtual notch view needs, updated whenever the display or the settings change.
 @MainActor

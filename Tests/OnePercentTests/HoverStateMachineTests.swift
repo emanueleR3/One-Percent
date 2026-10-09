@@ -1,5 +1,7 @@
 import XCTest
 @testable import OnePercent
+@testable import OnePercentCore
+import OnePercentTestSupport
 
 final class HoverStateMachineTests: XCTestCase {
     func testExpandsImmediatelyWhenCursorEnters() {

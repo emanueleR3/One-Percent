@@ -2,6 +2,8 @@ import XCTest
 import SwiftUI
 import AppKit
 @testable import OnePercent
+@testable import OnePercentCore
+import OnePercentTestSupport
 
 /// Switching between "Overview" and "Focus" must not move anything: both tabs take the same height,
 /// in every language, so the chips at the bottom stay under the pointer.

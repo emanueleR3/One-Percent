@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import Combine
+import OnePercentCore
 
 /// Keeps the system's pending notifications in sync with the user's reminder settings and the
 /// current state of the day, so the wording ("3 goals left") is never stale when it fires.

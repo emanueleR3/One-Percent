@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// The virtual notch: black, flat on top, rounded below. A ring sits on the left and a number on
 /// the right, each centred in its side, so the two halves balance around the real notch.

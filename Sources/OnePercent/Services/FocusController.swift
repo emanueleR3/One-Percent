@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import Combine
+import OnePercentCore
 
 /// Runs the focus timer and the optional Pomodoro cycle on top of `TaskStore`.
 ///

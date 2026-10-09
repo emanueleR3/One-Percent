@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Everything about one goal that does not fit on a row: tags, steps, a note, The One.
 struct GoalDetailView: View {

@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Muted, evenly weighted hues for tags. Mint, amber, lavender and orange are taken by status,
 /// so these lean towards the rest of the wheel and stay readable on the near-black panel.

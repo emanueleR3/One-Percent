@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import OnePercentCore
 
 struct NotchScreenMetrics {
     let frame: NSRect

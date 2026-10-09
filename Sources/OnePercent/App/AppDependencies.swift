@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import OnePercentCore
 
 @MainActor
 final class AppDependencies {
@@ -18,6 +19,23 @@ final class AppDependencies {
     private static func apply(language: AppLanguage, to dateService: DateService) {
         Localizer.shared.setLanguage(language)
         dateService.setLocale(language.locale)
+    }
+
+    private static func makeCloudSync(store: TaskStore) -> CloudSyncController {
+        // The session lives in a private file: an ad-hoc signed app would get a Keychain prompt on every update.
+        let auth = SupabaseAuth(secrets: FileSecretStore())
+        let engine = SyncEngine(
+            store: store,
+            transport: SupabaseTransport(auth: auth),
+            persistence: FileSyncStatePersistence()
+        )
+        return CloudSyncController(
+            auth: auth,
+            engine: engine,
+            realtime: SupabaseRealtime(auth: auth),
+            // Copy the goal and habit files before this Mac first merges with the cloud.
+            beforeFirstSync: { SyncBackup.make() }
+        )
     }
 
     init(
@@ -47,14 +65,22 @@ final class AppDependencies {
             ReminderCoordinator(store: store, preferences: preferences, scheduler: $0)
         }
 
+        // Cloud sync talks to the real server, so (like notifications) it only runs in the app bundle.
+        let cloud: CloudSyncController? = Bundle.main.bundleURL.pathExtension == "app"
+            ? Self.makeCloudSync(store: store)
+            : nil
+
         let services = IslandServices(
             preferences: preferences,
             reminders: reminders,
             launchAtLogin: LaunchAtLoginController(),
             smartAdd: SmartAddService(),
-            focus: FocusController(store: store, preferences: preferences, scheduler: notifications)
+            focus: FocusController(store: store, preferences: preferences, scheduler: notifications),
+            cloud: cloud
         )
         self.services = services
+        // A session saved by an earlier run starts syncing right away.
+        if let cloud { Task { await cloud.start() } }
 
         let windowController = NotchWindowController(taskStore: store, services: services)
         self.notchWindowController = windowController

@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Compact empty state view per ONE_PERCENT_SPEC.md (Section 11.6)
 struct EmptyStateView: View {

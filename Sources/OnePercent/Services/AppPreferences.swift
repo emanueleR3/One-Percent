@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import OnePercentCore
 
 /// User-facing settings, persisted in `UserDefaults`. Reads fall back to defaults when a stored
 /// value is missing or unreadable, so a bad write can never lock the app out.

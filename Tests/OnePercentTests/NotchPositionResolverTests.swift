@@ -1,6 +1,8 @@
 import AppKit
 import XCTest
 @testable import OnePercent
+@testable import OnePercentCore
+import OnePercentTestSupport
 
 final class NotchPositionResolverTests: XCTestCase {
     func testNotchedDisplayUsesTheGapBetweenAuxiliaryAreas() {

@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Compact day navigation per user requirements: arrows only, clamped to [-7, +7] days from today
 struct DayPickerView: View {

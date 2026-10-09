@@ -1,4 +1,5 @@
 import Foundation
+import OnePercentCore
 
 /// The two reasons the panel must not close on its own: someone is typing in it, or a menu is open.
 struct InteractionLock: Equatable {

@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Sizes both stats tabs share, so switching between them never moves the footer or resizes the page.
 enum StatsLayout {

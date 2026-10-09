@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import OnePercentCore
 
 /// The notch panel is non-activating, so ⌘V does not always reach a focused `TextField`.
 /// While `isActive`, this appends the clipboard text to `text` on ⌘V.

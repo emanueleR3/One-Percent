@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// End-of-day prompt: "3 goals left, move them to tomorrow?", then a short Undo window.
 struct WrapUpBannerView: View {

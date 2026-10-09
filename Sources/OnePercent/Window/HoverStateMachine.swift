@@ -1,3 +1,5 @@
+import OnePercentCore
+
 /// Pure hover policy kept independent from AppKit so the timing boundary can be tested.
 struct HoverStateMachine {
     enum Action: Equatable {

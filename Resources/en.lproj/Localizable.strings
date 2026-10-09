@@ -14,6 +14,8 @@
 "%d goals left" = "%d goals left";
 "%d habit still open" = "%d habit still open";
 "%d habits still open" = "%d habits still open";
+"%d item needs a newer version of One Percent." = "%d item needs a newer version of One Percent.";
+"%d items need a newer version of One Percent." = "%d items need a newer version of One Percent.";
 "%d left" = "%d left";
 "%d of %d" = "%d of %d";
 "%d of %d done" = "%d of %d done";
@@ -80,11 +82,14 @@
 "Close goal input" = "Close goal input";
 "Close goal input (Esc)" = "Close goal input (Esc)";
 "Close what you can. The rest can wait until tomorrow." = "Close what you can. The rest can wait until tomorrow.";
+"Cloud sync" = "Cloud sync";
 "Complete a goal today to keep it." = "Complete a goal today to keep it.";
 "Confirm clearing tracked time" = "Confirm clearing tracked time";
 "Confirm delete %@" = "Confirm delete %@";
+"Confirm your email first: check your inbox." = "Confirm your email first: check your inbox.";
 "Copy" = "Copy";
 "Couldn't change login item: %@" = "Couldn't change login item: %@";
+"Couldn't sign in: %@" = "Couldn't sign in: %@";
 "Counts while a goal or a Pomodoro block runs" = "Counts while a goal or a Pomodoro block runs";
 "Current date: Today" = "Current date: Today";
 "Custom" = "Custom";
@@ -105,6 +110,7 @@
 "Double click to edit title" = "Double click to edit title";
 "Drag to reorder goal" = "Drag to reorder goal";
 "Edit" = "Edit";
+"Email" = "Email";
 "Evening wrap-up" = "Evening wrap-up";
 "Every %@" = "Every %@";
 "Every day" = "Every day";
@@ -138,6 +144,7 @@
 "In progress" = "In progress";
 "Instant" = "Instant";
 "Keep your %d-day streak alive: one goal is enough." = "Keep your %d-day streak alive: one goal is enough.";
+"Keep your goals and habits in step with your other devices." = "Keep your goals and habits in step with your other devices.";
 "Language" = "Language";
 "Last 12 weeks" = "Last 12 weeks";
 "Last 7 days" = "Last 7 days";
@@ -166,6 +173,7 @@
 "New step" = "New step";
 "New tag" = "New tag";
 "Next day" = "Next day";
+"No connection. Try again in a moment." = "No connection. Try again in a moment.";
 "No goals" = "No goals";
 "No streak yet. Complete a goal today to start one." = "No streak yet. Complete a goal today to start one.";
 "No time tracked yet" = "No time tracked yet";
@@ -178,6 +186,7 @@
 "Notifications are blocked for One Percent." = "Notifications are blocked for One Percent.";
 "Off" = "Off";
 "Offer to move what's left" = "Offer to move what's left";
+"Offline. It will retry by itself." = "Offline. It will retry by itself.";
 "On" = "On";
 "On displays without a notch" = "On displays without a notch";
 "One Percent" = "One Percent";
@@ -191,6 +200,7 @@
 "Option" = "Option";
 "Overview" = "Overview";
 "Panel position" = "Panel position";
+"Password" = "Password";
 "Paste" = "Paste";
 "Pause" = "Pause";
 "Pause the timer" = "Pause the timer";
@@ -231,6 +241,9 @@
 "Show stats" = "Show stats";
 "Show the panel when the pointer reaches the notch" = "Show the panel when the pointer reaches the notch";
 "Show the timer there" = "Show the timer there";
+"Sign in" = "Sign in";
+"Sign out" = "Sign out";
+"Signing in…" = "Signing in…";
 "Skip break" = "Skip break";
 "Small and done beats perfect and skipped." = "Small and done beats perfect and skipped.";
 "Smart quick add" = "Smart quick add";
@@ -240,6 +253,7 @@
 "Start timer" = "Start timer";
 "Start timer for %@" = "Start timer for %@";
 "Start with “%@”. Everything else follows." = "Start with “%@”. Everything else follows.";
+"Starting…" = "Starting…";
 "Stats" = "Stats";
 "Stats page" = "Stats page";
 "Stays open after the pointer leaves" = "Stays open after the pointer leaves";
@@ -248,6 +262,10 @@
 "Streak" = "Streak";
 "Streak %d · best %d" = "Streak %d · best %d";
 "Streak: %@. Best: %d. %@" = "Streak: %@. Best: %d. %@";
+"Sync now" = "Sync now";
+"Sync problem: %@" = "Sync problem: %@";
+"Synced at %@" = "Synced at %@";
+"Syncing…" = "Syncing…";
 "System" = "System";
 "TODAY'S GOALS" = "TODAY'S GOALS";
 "TOMORROW'S GOALS" = "TOMORROW'S GOALS";
@@ -259,7 +277,10 @@
 "The One is open" = "The One is open";
 "The One: the goal that matters most today" = "The One: the goal that matters most today";
 "The built-in display, else the main one" = "The built-in display, else the main one";
+"The first sign-in merges what is on this Mac with the cloud. Nothing is deleted, and a backup is kept." = "The first sign-in merges what is on this Mac with the cloud. Nothing is deleted, and a backup is kept.";
 "The real notch covers the middle" = "The real notch covers the middle";
+"The session ended. Sign in again." = "The session ended. Sign in again.";
+"This Mac keeps its goals and habits." = "This Mac keeps its goals and habits.";
 "Time" = "Time";
 "Time for a long break: %d minutes." = "Time for a long break: %d minutes.";
 "Time is kept when you pause or finish" = "Time is kept when you pause or finish";
@@ -286,6 +307,7 @@
 "Where it went" = "Where it went";
 "Whichever has the menu bar" = "Whichever has the menu bar";
 "Width" = "Width";
+"Wrong email or password." = "Wrong email or password.";
 "You're moving. %d more and the day is yours." = "You're moving. %d more and the day is yours.";
 "all moved to tomorrow" = "all moved to tomorrow";
 "best %d" = "best %d";

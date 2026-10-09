@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import OnePercentCore
 
 /// Scroll view with the app's scroll cues: no native bar (it covered the status chips), a soft fade
 /// on whichever edge still has content beyond it, and a slim thumb parked in the card gutter.

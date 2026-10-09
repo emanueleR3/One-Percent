@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import OnePercentCore
 
 /// Preferences page: wrap-up, reminders, general behaviour, habits and tags.
 struct SettingsView: View {
@@ -8,6 +9,9 @@ struct SettingsView: View {
     @ObservedObject var launchAtLogin: LaunchAtLoginController
     @ObservedObject var smartAdd: SmartAddService
     let reminders: ReminderCoordinator?
+    var cloud: CloudSyncController? = nil
+    /// Reported up so the panel stays open and takes the keyboard while an email or password is typed.
+    @Binding var isTyping: Bool
 
     @State private var displays: [DisplayInfo] = []
     /// The display the notch lives on; gives the virtual notch its automatic size.
@@ -21,6 +25,9 @@ struct SettingsView: View {
                 focusSection
                 notchSection
                 generalSection
+                if let cloud {
+                    CloudSyncSection(cloud: cloud, calendar: store.dateService.currentCalendar, isTyping: $isTyping)
+                }
                 habitsSection
                 tagsSection
                 aboutFooter
@@ -369,7 +376,7 @@ struct SettingsView: View {
 
 // MARK: - Building blocks
 
-private struct SettingsSection<Content: View>: View {
+struct SettingsSection<Content: View>: View {
     let title: String
     @ViewBuilder var content: () -> Content
 
@@ -392,7 +399,7 @@ private struct SettingsSection<Content: View>: View {
     }
 }
 
-private struct SettingsRow<Trailing: View>: View {
+struct SettingsRow<Trailing: View>: View {
     let title: String
     var caption: String? = nil
     @ViewBuilder var trailing: () -> Trailing
@@ -422,7 +429,7 @@ private struct SettingsRow<Trailing: View>: View {
     }
 }
 
-private struct SettingsDivider: View {
+struct SettingsDivider: View {
     var body: some View {
         Rectangle()
             .fill(IslandPalette.hairline)
@@ -431,7 +438,7 @@ private struct SettingsDivider: View {
     }
 }
 
-private struct SettingsHint: View {
+struct SettingsHint: View {
     let text: String
 
     init(_ text: String) {

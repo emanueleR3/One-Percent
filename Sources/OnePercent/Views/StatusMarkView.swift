@@ -1,4 +1,5 @@
 import SwiftUI
+import OnePercentCore
 
 /// Hand-drawn checkmark so it can be trimmed from nothing to full stroke.
 private struct CheckStroke: Shape {

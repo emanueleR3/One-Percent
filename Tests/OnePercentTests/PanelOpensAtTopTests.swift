@@ -2,6 +2,8 @@ import XCTest
 import SwiftUI
 import AppKit
 @testable import OnePercent
+@testable import OnePercentCore
+import OnePercentTestSupport
 
 /// The real panel, on the real display, with a list long enough to scroll: after every opening the
 /// first goal must be fully visible (offset exactly 0), however the opening animation rounded things.

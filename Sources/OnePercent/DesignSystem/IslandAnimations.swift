@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import OnePercentCore
 
 /// Centralized animation curves per ONE_PERCENT_SPEC.md (Section 10.8) and bubble droplet physics
 enum IslandAnimations {

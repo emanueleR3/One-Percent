@@ -1,4 +1,5 @@
 import AppKit
+import OnePercentCore
 
 /// AppKit owns the application lifecycle so launch never creates a conventional SwiftUI
 /// window. SwiftUI is used only inside the dedicated notch panel.

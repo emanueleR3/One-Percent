@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import OnePercentCore
 
 /// What the add editor hands back: a plain goal, or a habit when `schedule` is set.
 struct NewGoal: Equatable {

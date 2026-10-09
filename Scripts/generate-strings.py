@@ -12,20 +12,21 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SOURCES = os.path.join(ROOT, "Sources", "OnePercent")
+SOURCES = [os.path.join(ROOT, "Sources", name) for name in ("OnePercent", "OnePercentCore")]
 
 
 def used_keys():
     keys = set()
-    for directory, _, files in os.walk(SOURCES):
-        for name in files:
-            if not name.endswith(".swift") or name == "Localizer.swift":
-                continue
-            text = open(os.path.join(directory, name), encoding="utf-8").read()
-            for m in re.finditer(r'\bL\("((?:[^"\\]|\\.)*)"', text):
-                keys.add(m.group(1))
-            for m in re.finditer(r'\bLp\("((?:[^"\\]|\\.)*)",\s*"((?:[^"\\]|\\.)*)"', text):
-                keys.update(m.groups())
+    for source in SOURCES:
+        for directory, _, files in os.walk(source):
+            for name in files:
+                if not name.endswith(".swift") or name == "Localizer.swift":
+                    continue
+                text = open(os.path.join(directory, name), encoding="utf-8").read()
+                for m in re.finditer(r'\bL\("((?:[^"\\]|\\.)*)"', text):
+                    keys.add(m.group(1))
+                for m in re.finditer(r'\bLp\("((?:[^"\\]|\\.)*)",\s*"((?:[^"\\]|\\.)*)"', text):
+                    keys.update(m.groups())
     return keys
 
 

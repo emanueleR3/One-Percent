@@ -1,4 +1,5 @@
 import AppKit
+import OnePercentCore
 
 /// Defaults and limits for the virtual notch: a black notch drawn over the real one. It is wider
 /// than the hardware notch, so the real notch hides the middle and the two sides stick out as
