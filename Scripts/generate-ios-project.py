@@ -59,7 +59,7 @@ app_settings = {
     "INFOPLIST_KEY_UIApplicationSceneManifest_Generation": "YES", "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES",
     "INFOPLIST_KEY_UILaunchScreen_Generation": "YES", "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone": "UIInterfaceOrientationPortrait",
     "INFOPLIST_KEY_UIUserInterfaceStyle": "Dark", "LD_RUNPATH_SEARCH_PATHS": ["$(inherited)", "@executable_path/Frameworks"],
-    "MARKETING_VERSION": "0.1.1", "PRODUCT_BUNDLE_IDENTIFIER": APP_ID, "PRODUCT_NAME": "$(TARGET_NAME)",
+    "MARKETING_VERSION": "0.1.2", "PRODUCT_BUNDLE_IDENTIFIER": APP_ID, "PRODUCT_NAME": "$(TARGET_NAME)",
     "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator", "SUPPORTS_MACCATALYST": "NO", "SWIFT_EMIT_LOC_STRINGS": "YES",
     "SWIFT_VERSION": "5.0", "TARGETED_DEVICE_FAMILY": "1",
 }
@@ -69,7 +69,7 @@ widget_settings = {
     "CURRENT_PROJECT_VERSION": "1", "DEVELOPMENT_TEAM": TEAM, "GENERATE_INFOPLIST_FILE": "YES",
     "INFOPLIST_FILE": "Config/OnePercentWidget-Info.plist", "INFOPLIST_KEY_CFBundleDisplayName": "One Percent",
     "LD_RUNPATH_SEARCH_PATHS": ["$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks"],
-    "MARKETING_VERSION": "0.1.1", "PRODUCT_BUNDLE_IDENTIFIER": WIDGET_ID, "PRODUCT_NAME": "$(TARGET_NAME)",
+    "MARKETING_VERSION": "0.1.2", "PRODUCT_BUNDLE_IDENTIFIER": WIDGET_ID, "PRODUCT_NAME": "$(TARGET_NAME)",
     "SKIP_INSTALL": "YES", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator", "SWIFT_EMIT_LOC_STRINGS": "YES",
     "SWIFT_VERSION": "5.0", "TARGETED_DEVICE_FAMILY": "1",
 }
