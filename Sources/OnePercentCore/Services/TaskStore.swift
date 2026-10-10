@@ -36,17 +36,23 @@ public final class TaskStore: ObservableObject {
 
     private let persistence: TaskPersisting
     private let habitPersistence: HabitPersisting
+    private let timerRelaunch: TimerRelaunchPolicy
+    private let timerOrigin: TimerOriginStoring?
     public let dateService: DateService
 
     public init(
         persistence: TaskPersisting? = nil,
         dateService: DateService? = nil,
-        habitPersistence: HabitPersisting? = nil
+        habitPersistence: HabitPersisting? = nil,
+        timerRelaunch: TimerRelaunchPolicy = .creditToLastCheckpoint,
+        timerOrigin: TimerOriginStoring? = nil
     ) {
         let dateSvc = dateService ?? DateService()
         self.dateService = dateSvc
         self.selectedDate = dateSvc.today
         self.persistence = persistence ?? PersistenceController()
+        self.timerRelaunch = timerRelaunch
+        self.timerOrigin = timerOrigin
         // Without an explicit store, mirror the tasks store: real disk for the real app, memory for tests.
         self.habitPersistence = habitPersistence ?? (persistence == nil ? HabitPersistenceController() : InMemoryHabitPersistence())
 
@@ -927,6 +933,7 @@ public final class TaskStore: ObservableObject {
         allTasks[started].timerStartedAt = now
         allTasks[started].timerIsPomodoro = isPomodoro
         allTasks[started].updatedAt = now
+        timerOrigin?.save(LocalTimerMarker(taskID: id, startedAt: now))
         persist()
         return true
     }
@@ -944,7 +951,8 @@ public final class TaskStore: ObservableObject {
     /// Called while a timer runs so a crash or force quit loses at most the last half minute:
     /// on relaunch the time is credited up to this checkpoint (`updatedAt`).
     public func timerHeartbeat(at now: Date = Date()) {
-        guard let index = allTasks.firstIndex(where: { $0.timerStartedAt != nil }) else { return }
+        guard let index = allTasks.firstIndex(where: { $0.timerStartedAt != nil }),
+              isTimerStartedHere(allTasks[index].id) else { return }
         allTasks[index].updatedAt = now
         persist()
     }
@@ -972,23 +980,62 @@ public final class TaskStore: ObservableObject {
         allTasks[index].updatedAt = now
     }
 
-    /// A timer still marked as running at launch means the app stopped without pausing it. Credit
-    /// the time up to the last save and stop it rather than counting the hours the app was off.
-    private func recoverInterruptedTimers() {
+    /// A running timer that was started on this device, as opposed to one that arrived through
+    /// sync. With no record kept (a store built without one) every timer counts as ours.
+    public func isTimerStartedHere(_ id: UUID) -> Bool {
+        guard let timerOrigin else { return true }
+        guard let marker = timerOrigin.load(), marker.taskID == id,
+              let started = allTasks.first(where: { $0.id == id })?.timerStartedAt else { return false }
+        return abs(started.timeIntervalSince(marker.startedAt)) < 1
+    }
+
+    /// A timer left running this long was almost certainly forgotten, not worked on.
+    public static let forgottenTimerAfter: TimeInterval = 12 * 3_600
+
+    /// Stops the timers that have been running longer than `forgottenTimerAfter`, crediting only
+    /// what was confirmed by the last checkpoint. Cheap enough to call whenever the app wakes.
+    public func expireForgottenTimers(at now: Date = Date()) {
         var changed = false
         for index in allTasks.indices {
-            guard let started = allTasks[index].timerStartedAt else { continue }
-            let seconds = allTasks[index].updatedAt.timeIntervalSince(started)
-            if seconds >= 1 {
-                allTasks[index].focusSessions.append(
-                    FocusSession(start: started, seconds: seconds, isPomodoro: allTasks[index].timerIsPomodoro)
-                )
-            }
-            allTasks[index].timerStartedAt = nil
-            allTasks[index].timerIsPomodoro = false
+            guard let started = allTasks[index].timerStartedAt,
+                  now.timeIntervalSince(started) > Self.forgottenTimerAfter else { continue }
+            creditUntilLastCheckpoint(at: index)
             changed = true
         }
         if changed { persist() }
+    }
+
+    /// A timer still marked as running at launch may mean the app stopped without pausing it.
+    ///
+    /// Only a timer this device started can be "interrupted" by this device, and only on a Mac,
+    /// where it means the app quit or the computer slept: credit the time up to the last save and
+    /// stop it rather than counting the hours the app was off. A phone keeps it running: the app
+    /// was most likely just suspended. A timer that came from another device is never touched:
+    /// stopping it here would send a stop to the device that is still running it.
+    private func recoverInterruptedTimers() {
+        let now = Date()
+        var changed = false
+        for index in allTasks.indices {
+            guard let started = allTasks[index].timerStartedAt else { continue }
+            let forgotten = now.timeIntervalSince(started) > Self.forgottenTimerAfter
+            let interrupted = isTimerStartedHere(allTasks[index].id) && timerRelaunch == .creditToLastCheckpoint
+            guard forgotten || interrupted else { continue }
+            creditUntilLastCheckpoint(at: index)
+            changed = true
+        }
+        if changed { persist() }
+    }
+
+    private func creditUntilLastCheckpoint(at index: Int) {
+        guard let started = allTasks[index].timerStartedAt else { return }
+        let seconds = allTasks[index].updatedAt.timeIntervalSince(started)
+        if seconds >= 1 {
+            allTasks[index].focusSessions.append(
+                FocusSession(start: started, seconds: seconds, isPomodoro: allTasks[index].timerIsPomodoro)
+            )
+        }
+        allTasks[index].timerStartedAt = nil
+        allTasks[index].timerIsPomodoro = false
     }
 
     // MARK: - Cloud sync

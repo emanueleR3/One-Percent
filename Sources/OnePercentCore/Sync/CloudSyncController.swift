@@ -25,6 +25,8 @@ public final class CloudSyncController: ObservableObject {
     private let auth: SupabaseAuth
     private let engine: SyncEngine
     private let realtime: SupabaseRealtime?
+    /// The live loop (timer and connection) was started and not stopped since.
+    private var isRunning = false
     private let beforeFirstSync: () -> Void
     private var cancellables = Set<AnyCancellable>()
 
@@ -59,9 +61,24 @@ public final class CloudSyncController: ObservableObject {
 
     /// Picks up where the last run left off: a saved session starts syncing at once.
     public func start() async {
-        guard case .signedOut = account, let session = await auth.currentSession() else { return }
-        account = .signedIn(email: session.email)
+        guard !isRunning else { return }
+        if case .signedOut = account {
+            guard let session = await auth.currentSession() else { return }
+            account = .signedIn(email: session.email)
+        }
+        guard case .signedIn = account else { return }
+        isRunning = true
         engine.start(nudges: realtime?.nudges())
+    }
+
+    /// One pull and push, for a short background wake-up: loads the saved session if needed and
+    /// syncs once, without starting the live loop or the connection. `start()` still works after it.
+    public func syncOnce() async {
+        if case .signedOut = account, let session = await auth.currentSession() {
+            account = .signedIn(email: session.email)
+        }
+        guard case .signedIn = account else { return }
+        await engine.syncNow()
     }
 
     public func signIn(email: String, password: String) async {
@@ -72,6 +89,7 @@ public final class CloudSyncController: ObservableObject {
             let session = try await auth.signIn(email: email, password: password)
             beforeFirstSync()
             account = .signedIn(email: session.email)
+            isRunning = true
             engine.start(nudges: realtime?.nudges())
         } catch let error as AuthError {
             account = .signedOut
@@ -91,6 +109,7 @@ public final class CloudSyncController: ObservableObject {
     public func signOut() async {
         engine.stop()
         engine.reset()
+        isRunning = false
         await auth.signOut()
         account = .signedOut
         signInFailure = nil

@@ -5,6 +5,7 @@ import SwiftUI
 struct OnePercentWidgetBundle: WidgetBundle {
     var body: some Widget {
         TodayWidget()
+        FocusLiveActivity()
     }
 }
 

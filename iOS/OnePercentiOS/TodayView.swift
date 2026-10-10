@@ -170,7 +170,7 @@ struct TodayView: View {
         store.moveTask(from: from, to: to)
     }
 
-    /// Development builds can open a screen at launch (`-demo -demoSheet add|settings|stats|detail`) to inspect it.
+    /// Development builds can open a screen at launch (`-demo -demoSheet add|settings|stats|detail`, `-demoFocus`, `-demoRemoteFocus`) to inspect it.
     private func openSheetForInspection() {
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
@@ -178,6 +178,13 @@ struct TodayView: View {
         if arguments.contains("-demoReorder") { editMode = .active }
         if arguments.contains("-demoFocus"), let first = store.selectedDateTasks.first(where: { $0.status == .inProgress }) {
             focus.start(taskID: first.id)
+        }
+        // A timer that "arrives from the Mac": applied the way sync applies it, so nothing marks it as ours.
+        if arguments.contains("-demoRemoteFocus"),
+           var goal = store.selectedDateTasks.first(where: { $0.status == .inProgress }) {
+            goal.timerStartedAt = Date().addingTimeInterval(-300)
+            goal.updatedAt = Date()
+            store.applyRemote(TaskStore.RemoteChanges(tasks: [goal]))
         }
         guard let index = arguments.firstIndex(of: "-demoSheet"), index + 1 < arguments.count else { return }
         switch arguments[index + 1] {

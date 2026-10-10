@@ -68,6 +68,8 @@ public final class FocusController: ObservableObject {
                 DispatchQueue.main.async { self?.updateTicker() }
             }
             .store(in: &cancellables)
+
+        restoreFromStore()
     }
 
     deinit {
@@ -154,7 +156,29 @@ public final class FocusController: ObservableObject {
 
     public func systemWillSleep() {
         guard isActive, !(pomodoro?.isPaused ?? false) || runningTaskID != nil else { return }
+        // A timer that another device is running (it arrived through sync) is not ours to pause:
+        // this computer going to sleep says nothing about the phone that started it.
+        if pomodoro == nil, let id = runningTaskID, !store.isTimerStartedHere(id) { return }
         pause()
+    }
+
+    /// Picks the Pomodoro block back up after the app was closed or suspended with one running.
+    /// The store remembers the timer (a start time); the block itself lived only in memory.
+    ///
+    /// If the block ran out meanwhile, exactly the planned block is banked, as a late tick would.
+    public func restoreFromStore() {
+        guard pomodoro == nil, let id = store.runningTimerTaskID, store.isTimerStartedHere(id),
+              let goal = store.allTasks.first(where: { $0.id == id }),
+              goal.timerIsPomodoro, let started = goal.timerStartedAt else { return }
+
+        let config = preferences.pomodoroConfig
+        let block = PomodoroState(phase: .focus, startedAt: started, duration: config.focus, completedFocusBlocks: completedBlocks, taskID: id)
+        if block.isFinished(at: now()) {
+            store.pauseTimer(id: id, at: started.addingTimeInterval(config.focus))
+        } else {
+            pomodoro = block
+        }
+        updateTicker()
     }
 
     // MARK: - Ticking
@@ -183,6 +207,7 @@ public final class FocusController: ObservableObject {
             if ticksSinceHeartbeat >= Self.heartbeatEvery {
                 ticksSinceHeartbeat = 0
                 store.timerHeartbeat(at: moment)
+                store.expireForgottenTimers(at: moment)
             }
         }
 

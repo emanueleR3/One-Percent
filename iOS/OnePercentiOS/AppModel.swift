@@ -5,6 +5,10 @@ import OnePercentCore
 /// Everything the screens share: the goals, the cloud account, the chosen language.
 @MainActor
 final class AppModel: ObservableObject {
+    /// One model per process, created on first use: a background wake-up (see `BackgroundRefresh`)
+    /// may run before any screen exists, and must find the same goals and sync as the screens do.
+    static let shared = AppModel()
+
     let store: TaskStore
     let cloud: CloudSyncController
     let reminders: PhoneReminders
@@ -12,6 +16,7 @@ final class AppModel: ObservableObject {
     let focusSettings: PhoneFocusSettings
     let focus: FocusController
     let focusAlerts: FocusBackgroundAlerts
+    let liveActivity: FocusLiveActivityController
     private(set) var widgetBridge: WidgetBridge?
 
     @Published var language: LanguageChoice {
@@ -46,12 +51,17 @@ final class AppModel: ObservableObject {
         self.language = language
         self.tagColors = demo ? [:] : (defaults.data(forKey: Keys.tagColors)).flatMap { try? JSONDecoder().decode([String: Int].self, from: $0) } ?? [:]
 
+        // A timer is a start time: it keeps counting while the app is suspended or closed, so a
+        // launch must never stop one (and never one that the Mac started).
         #if DEBUG
         let store = demo
-            ? TaskStore(persistence: DemoPersistence(), dateService: nil, habitPersistence: InMemoryHabitPersistence())
-            : TaskStore()
+            ? TaskStore(
+                persistence: DemoPersistence(), dateService: nil, habitPersistence: InMemoryHabitPersistence(),
+                timerRelaunch: .keepRunning, timerOrigin: InMemoryTimerOrigin()
+            )
+            : TaskStore(timerRelaunch: .keepRunning, timerOrigin: UserDefaultsTimerOrigin())
         #else
-        let store = TaskStore()
+        let store = TaskStore(timerRelaunch: .keepRunning, timerOrigin: UserDefaultsTimerOrigin())
         #endif
         self.store = store
 
@@ -77,6 +87,7 @@ final class AppModel: ObservableObject {
         let focus = FocusController(store: store, preferences: focusSettings, scheduler: nil, onAlert: { Haptics.success() })
         self.focus = focus
         self.focusAlerts = FocusBackgroundAlerts(focus: focus, settings: focusSettings)
+        self.liveActivity = FocusLiveActivityController(store: store, focus: focus, settings: focusSettings)
         applyLanguage()
         // Demo data must never reach the real widget.
         if !demo { widgetBridge = WidgetBridge(store: store) }
@@ -100,7 +111,30 @@ final class AppModel: ObservableObject {
         reminders.start()
         await reminders.refreshAuthorization()
         await signature.refresh()
+        liveActivity.reconcile()
         await cloud.start()
+    }
+
+    /// Leaving the screen: if a timer runs (here or on the Mac), ask iOS for a quiet wake-up later
+    /// to correct the clock on the Lock Screen should it be stopped elsewhere. Nothing to wake for
+    /// otherwise.
+    func enteredBackground() {
+        if isDemo { return }
+        if store.runningTimerTaskID != nil {
+            BackgroundRefresh.schedule()
+        } else {
+            BackgroundRefresh.cancel()
+        }
+    }
+
+    /// The body of a background wake-up: pull what changed, drop a forgotten timer, bring the
+    /// Lock Screen clock in line, and ask for the next wake-up if a timer is still running.
+    func backgroundRefresh() async {
+        if isDemo { return }
+        await cloud.syncOnce()
+        store.expireForgottenTimers()
+        await liveActivity.reconcileNow()
+        enteredBackground()
     }
 
     /// Back on screen: a new day may have begun, and the other devices may have changed things.
@@ -108,7 +142,10 @@ final class AppModel: ObservableObject {
         if isDemo { return }
         store.dateService.refreshToday()
         store.ensureHabitOccurrences()
+        store.expireForgottenTimers()
+        focus.restoreFromStore()
         focus.tick()   // a block may have ended while the app slept
+        liveActivity.reconcile()
         reminders.scheduleRefresh()
         Task { await signature.refresh() }
         Task { await cloud.syncNow() }

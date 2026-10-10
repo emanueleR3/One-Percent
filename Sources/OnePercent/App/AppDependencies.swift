@@ -50,7 +50,11 @@ final class AppDependencies {
         let store = TaskStore(
             persistence: persistenceController,
             dateService: dateSvc,
-            habitPersistence: HabitPersistenceController()
+            habitPersistence: HabitPersistenceController(),
+            // A timer left running when the app stopped is credited up to its last checkpoint, but
+            // only if this Mac started it: one that arrived from the phone is not ours to stop.
+            timerRelaunch: .creditToLastCheckpoint,
+            timerOrigin: UserDefaultsTimerOrigin()
         )
         self.taskStore = store
 

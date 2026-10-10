@@ -85,6 +85,38 @@ final class CloudSyncControllerTests: XCTestCase {
         device.engine.stop()
     }
 
+    func testABackgroundWakeSyncsOnceAndLeavesTheLiveLoopForLater() async {
+        let secrets = InMemorySecretStore()
+        let first = makeController(http: StubHTTP { _ in (tokenResponse(), 200) }, secrets: secrets)
+        await first.signIn(email: "me@example.com", password: "pw")
+        device.engine.stop()
+        server.resetCounters()
+
+        // The system wakes the app for a moment: no scene, no `start()`.
+        device.add("Made while asleep")
+        let woken = makeController(http: StubHTTP { _ in XCTFail("no sign-in needed"); return (Data(), 500) }, secrets: secrets)
+        await woken.syncOnce()
+        XCTAssertEqual(woken.account, .signedIn(email: "me@example.com"))
+        // (The first sign-in's own run may still be finishing, in which case this one is folded into it.)
+        let pushed = await eventually { self.server.storedRecords.count == 1 }
+        XCTAssertTrue(pushed, "the wake-up pushed what changed")
+        XCTAssertEqual(backups, 1, "not a new sign-in")
+
+        // The user then opens the app: the live loop must still start, or it never would in this run.
+        await woken.start()
+        device.add("Made while open")
+        let uploaded = await eventually { self.server.storedRecords.count == 2 }
+        XCTAssertTrue(uploaded, "live syncing runs after a background wake-up")
+        device.engine.stop()
+    }
+
+    func testABackgroundWakeWithoutASessionDoesNothing() async {
+        let cloud = makeController(http: StubHTTP { _ in XCTFail(); return (Data(), 500) })
+        await cloud.syncOnce()
+        XCTAssertEqual(cloud.account, .signedOut)
+        XCTAssertEqual(server.pulledRecords, 0)
+    }
+
     func testStartWithoutASessionDoesNothing() async {
         let cloud = makeController(http: StubHTTP { _ in XCTFail(); return (Data(), 500) })
         await cloud.start()
