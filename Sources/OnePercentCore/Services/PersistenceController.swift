@@ -18,7 +18,7 @@ public enum AppStorageLocation {
     }
 }
 
-/// Atomically persists and retrieves tasks in local JSON storage (Section 5.4)
+/// Atomically persists and retrieves tasks in local JSON storage
 ///
 /// Two safety nets, because the first write after a failed read would otherwise destroy the file:
 /// an unreadable `tasks.json` is copied to `tasks.corrupt-<time>.json` before it can be replaced,

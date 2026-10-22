@@ -10,7 +10,8 @@ final class AppModel: ObservableObject {
     static let shared = AppModel()
 
     let store: TaskStore
-    let cloud: CloudSyncController
+    /// Nil when this build has no Supabase project (Config/Local.xcconfig): the app is then local only.
+    let cloud: CloudSyncController?
     let reminders: PhoneReminders
     let signature: SignatureWatch
     let focusSettings: PhoneFocusSettings
@@ -66,18 +67,22 @@ final class AppModel: ObservableObject {
         self.store = store
 
         // The session lives in the Keychain: the app keeps one stable identity across updates.
-        let auth = SupabaseAuth(secrets: demo ? InMemorySecretStore() : KeychainSecretStore())
-        let engine = SyncEngine(
-            store: store,
-            transport: SupabaseTransport(auth: auth),
-            persistence: demo ? InMemorySyncStatePersistence() : FileSyncStatePersistence()
-        )
-        self.cloud = CloudSyncController(
-            auth: auth,
-            engine: engine,
-            realtime: SupabaseRealtime(auth: auth),
-            beforeFirstSync: { SyncBackup.make() }
-        )
+        // The demo shows the sign-in form even without a project; it never signs in or syncs.
+        let demoProject = demo ? SupabaseConfig(url: URL(string: "https://demo.invalid")!, publishableKey: "demo") : nil
+        self.cloud = (SupabaseConfig.fromBundle() ?? demoProject).map { config in
+            let auth = SupabaseAuth(config: config, secrets: demo ? InMemorySecretStore() : KeychainSecretStore())
+            let engine = SyncEngine(
+                store: store,
+                transport: SupabaseTransport(config: config, auth: auth),
+                persistence: demo ? InMemorySyncStatePersistence() : FileSyncStatePersistence()
+            )
+            return CloudSyncController(
+                auth: auth,
+                engine: engine,
+                realtime: SupabaseRealtime(config: config, auth: auth),
+                beforeFirstSync: { SyncBackup.make() }
+            )
+        }
         self.reminders = PhoneReminders(store: store)
         self.signature = SignatureWatch(calendar: { store.dateService.currentCalendar })
         let focusSettings = PhoneFocusSettings()
@@ -92,7 +97,7 @@ final class AppModel: ObservableObject {
         // Demo data must never reach the real widget.
         if !demo { widgetBridge = WidgetBridge(store: store) }
         #if DEBUG
-        if demo { DemoData.fill(store) }
+        if demo { DemoData.fill(store, italian: language == .italian) }
         #endif
     }
 
@@ -112,7 +117,7 @@ final class AppModel: ObservableObject {
         await reminders.refreshAuthorization()
         await signature.refresh()
         liveActivity.reconcile()
-        await cloud.start()
+        await cloud?.start()
     }
 
     /// Leaving the screen: if a timer runs (here or on the Mac), ask iOS for a quiet wake-up later
@@ -131,7 +136,7 @@ final class AppModel: ObservableObject {
     /// Lock Screen clock in line, and ask for the next wake-up if a timer is still running.
     func backgroundRefresh() async {
         if isDemo { return }
-        await cloud.syncOnce()
+        await cloud?.syncOnce()
         store.expireForgottenTimers()
         await liveActivity.reconcileNow()
         enteredBackground()
@@ -148,7 +153,7 @@ final class AppModel: ObservableObject {
         liveActivity.reconcile()
         reminders.scheduleRefresh()
         Task { await signature.refresh() }
-        Task { await cloud.syncNow() }
+        if let cloud { Task { await cloud.syncNow() } }
     }
 
     // MARK: Tag colors

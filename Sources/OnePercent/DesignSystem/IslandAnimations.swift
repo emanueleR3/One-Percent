@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import OnePercentCore
 
-/// Centralized animation curves per ONE_PERCENT_SPEC.md (Section 10.8) and bubble droplet physics
+/// Centralized animation curves and bubble droplet physics
 enum IslandAnimations {
     static let showDuration: TimeInterval = 0.22
     static let hideDuration: TimeInterval = 0.15

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Distinct statuses defined in ONE_PERCENT_SPEC.md (Section 5.2 & 10.7)
+/// The four statuses a goal can have
 public enum TaskStatus: String, Codable, CaseIterable, Sendable {
     case todo
     case inProgress

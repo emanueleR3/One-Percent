@@ -6,7 +6,7 @@ public final class SupabaseTransport: SyncTransport, @unchecked Sendable {
     private let auth: SupabaseAuth
     private let http: HTTPSending
 
-    public init(config: SupabaseConfig = .onePercent, auth: SupabaseAuth, http: HTTPSending = URLSession.shared) {
+    public init(config: SupabaseConfig, auth: SupabaseAuth, http: HTTPSending = URLSession.shared) {
         self.config = config
         self.auth = auth
         self.http = http

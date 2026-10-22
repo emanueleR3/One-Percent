@@ -17,7 +17,7 @@ private final class VirtualNotchPanel: NSPanel {
 
 /// The virtual notch: a black notch centred on the real one, wider than it, so the hardware covers
 /// the middle and the two sides show today's progress or the running timer while the panel is
-/// closed. Click-through: the activation window under it still opens the panel on hover or click.
+/// closed. Click-through: the activation window under it still opens the panel on hover.
 @MainActor
 final class NotchIndicatorController {
     private let model = NotchIndicatorModel()

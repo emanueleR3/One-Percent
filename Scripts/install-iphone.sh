@@ -3,6 +3,8 @@
 # iPhone and opens it. A free account's signature lasts 7 days, so run this again about once a
 # week (the app and its data stay in place).
 #
+# Your Team ID and bundle ID come from Config/Local.xcconfig (see Config/Local.example.xcconfig).
+#
 #     zsh Scripts/install-iphone.sh            # the first connected iPhone
 #     DEVICE=<udid> zsh Scripts/install-iphone.sh
 #
@@ -13,7 +15,12 @@
 set -euo pipefail
 
 cd "${0:A:h:h}"
-bundle_id="com.example.onepercent"
+bundle_id="$(python3 Scripts/read-config.py ONEPERCENT_BUNDLE_ID)"
+team_id="$(python3 Scripts/read-config.py ONEPERCENT_TEAM_ID)"
+if [ -z "$team_id" ]; then
+    echo "No Team ID set. Copy Config/Local.example.xcconfig to Config/Local.xcconfig and fill it in."
+    exit 1
+fi
 tmp="${TMPDIR:-$(getconf DARWIN_USER_TEMP_DIR)}"      # launchd jobs may start without TMPDIR
 state="$HOME/Library/Application Support/One Percent iPhone Refresh"
 staging="$state/staging"
@@ -27,7 +34,7 @@ case "$PWD" in
         derived="${tmp%/}/one-percent-ios-dd-refresh" ;;
     *)
         mkdir -p "$staging"
-        rsync -a --delete Package.swift Sources Tests Resources iOS Scripts "$staging/"
+        rsync -a --delete Package.swift Config Sources Tests Resources iOS Scripts "$staging/"
         cd "$staging"
         derived="${tmp%/}/one-percent-ios-dd" ;;
 esac
@@ -94,7 +101,7 @@ mkdir -p "$state" && date +%s >"$state/last-install"
 # is only replaced after an install that worked, so a broken edit can never end up in it.
 if [ "$PWD" = "$staging" ]; then
     mkdir -p "$renewal"
-    rsync -a --delete Package.swift Sources Tests Resources iOS Scripts "$renewal/"
+    rsync -a --delete Package.swift Config Sources Tests Resources iOS Scripts "$renewal/"
 fi
 
 if [ "${NO_LAUNCH:-}" = "1" ]; then

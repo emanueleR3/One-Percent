@@ -11,7 +11,9 @@ struct SettingsSheet: View {
         NavigationStack {
             ScrollViewReader { proxy in
             List {
-                CloudSettingsSection(cloud: model.cloud, calendar: store.dateService.currentCalendar)
+                if let cloud = model.cloud {
+                    CloudSettingsSection(cloud: cloud, calendar: store.dateService.currentCalendar)
+                }
 
                 RemindersSection(reminders: model.reminders, calendar: store.dateService.currentCalendar)
 

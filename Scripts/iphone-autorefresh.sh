@@ -15,7 +15,7 @@
 set -euo pipefail
 
 root="${0:A:h:h}"
-label="com.example.onepercent.iphone-refresh"
+label="$(python3 "$root/Scripts/read-config.py" ONEPERCENT_BUNDLE_ID).iphone-refresh"
 plist="$HOME/Library/LaunchAgents/$label.plist"
 state="$HOME/Library/Application Support/One Percent iPhone Refresh"
 mirror="$state/source"
@@ -28,7 +28,7 @@ install)
     # macOS keeps background jobs out of ~/Desktop, so the job works on a copy of the sources.
     # Every install-iphone.sh run that works refreshes that copy; it always matches the phone.
     if [ ! -f "$mirror/Package.swift" ]; then
-        (cd "$root" && rsync -a --delete Package.swift Sources Tests Resources iOS Scripts "$mirror/")
+        (cd "$root" && rsync -a --delete Package.swift Config Sources Tests Resources iOS Scripts "$mirror/")
     fi
     cat >"$plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>

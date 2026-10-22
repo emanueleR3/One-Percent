@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
-"""Checks the live Supabase project end to end (standard library only).
+"""Checks your live Supabase project end to end (standard library only).
 
     EMAIL=you@example.com PASSWORD='...' python3 supabase/tests/smoke.py
+
+The project comes from Config/Local.xcconfig (ONEPERCENT_SUPABASE_HOST and _KEY).
 
 Needs the migration applied and one confirmed user. It leaves two small tombstone rows of kind
 "pref" behind (harmless; purge_tombstones() removes them after 180 days).
 """
-import json, os, sys, uuid, urllib.request, urllib.error, urllib.parse
+import json, os, subprocess, sys, uuid, urllib.request, urllib.error, urllib.parse
 from datetime import datetime, timedelta, timezone
 
 here = os.path.dirname(os.path.abspath(__file__))
-cfg = json.load(open(os.path.join(here, "..", "project.json")))
-URL, KEY = cfg["url"].rstrip("/"), cfg["publishableKey"]
+read_config = os.path.join(here, "..", "..", "Scripts", "read-config.py")
+def setting(name):
+    return subprocess.run([sys.executable, read_config, name], capture_output=True, text=True, check=True).stdout.strip()
+HOST, KEY = setting("ONEPERCENT_SUPABASE_HOST"), setting("ONEPERCENT_SUPABASE_KEY")
+if not HOST or not KEY:
+    sys.exit("Set ONEPERCENT_SUPABASE_HOST and ONEPERCENT_SUPABASE_KEY in Config/Local.xcconfig first.")
+URL = (HOST if "://" in HOST else "https://" + HOST).rstrip("/")
 EMAIL, PASSWORD = os.environ.get("EMAIL"), os.environ.get("PASSWORD")
 
 failures = 0

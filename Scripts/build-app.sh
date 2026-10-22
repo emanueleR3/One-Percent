@@ -26,5 +26,18 @@ for lproj in "$project_dir"/Resources/*.lproj; do
     cp -R "$lproj" "$app_bundle/Contents/Resources/${lproj:t}"
 done
 
+# Cloud sync needs a Supabase project: its host and publishable key go into the Info.plist from
+# Config/Local.xcconfig. Without them the app works fully, on this Mac only.
+plist="$app_bundle/Contents/Info.plist"
+supabase_host="$(python3 "$project_dir/Scripts/read-config.py" ONEPERCENT_SUPABASE_HOST)"
+supabase_key="$(python3 "$project_dir/Scripts/read-config.py" ONEPERCENT_SUPABASE_KEY)"
+if [ -n "$supabase_host" ] && [ -n "$supabase_key" ]; then
+    /usr/libexec/PlistBuddy -c "Add :OnePercentSupabaseHost string $supabase_host" "$plist"
+    /usr/libexec/PlistBuddy -c "Add :OnePercentSupabaseKey string $supabase_key" "$plist"
+    sync_note="cloud sync on"
+else
+    sync_note="cloud sync off: no Supabase project in Config/Local.xcconfig"
+fi
+
 touch "$app_bundle"
-echo "Created $app_bundle"
+echo "Created $app_bundle ($sync_note)"

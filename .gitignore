@@ -4,6 +4,13 @@ build/
 .vscode/
 password.env
 
+# Your own Team ID, bundle ID and Supabase project (see Config/Local.example.xcconfig)
+Config/Local.xcconfig
+
 # Xcode per-user state
 xcuserdata/
 *.xcuserstate
+
+# Python
+__pycache__/
+*.pyc

@@ -119,23 +119,27 @@ final class SupabaseRealtimeTests: XCTestCase {
     }
 }
 
-/// Opt-in check against the real project. Skipped unless credentials are in the environment:
-///   ONEPERCENT_LIVE_EMAIL=… ONEPERCENT_LIVE_PASSWORD=… swift test --filter LiveSupabaseTests
+/// Opt-in check against your own project. Skipped unless it and an account are in the environment
+/// (Scripts/test-live.sh fills them in from Config/Local.xcconfig):
+///   ONEPERCENT_SUPABASE_HOST=… ONEPERCENT_SUPABASE_KEY=… ONEPERCENT_LIVE_EMAIL=… ONEPERCENT_LIVE_PASSWORD=… \
+///   swift test --filter LiveSupabaseTests
 @MainActor
 final class LiveSupabaseTests: XCTestCase {
-    private func credentials() throws -> (String, String) {
-        guard let email = ProcessInfo.processInfo.environment["ONEPERCENT_LIVE_EMAIL"],
-              let password = ProcessInfo.processInfo.environment["ONEPERCENT_LIVE_PASSWORD"] else {
-            throw XCTSkip("set ONEPERCENT_LIVE_EMAIL and ONEPERCENT_LIVE_PASSWORD to test against the real project")
+    private func project() throws -> (SupabaseConfig, String, String) {
+        let environment = ProcessInfo.processInfo.environment
+        guard let config = SupabaseConfig.make(host: environment["ONEPERCENT_SUPABASE_HOST"], key: environment["ONEPERCENT_SUPABASE_KEY"]),
+              let email = environment["ONEPERCENT_LIVE_EMAIL"],
+              let password = environment["ONEPERCENT_LIVE_PASSWORD"] else {
+            throw XCTSkip("set ONEPERCENT_SUPABASE_HOST, ONEPERCENT_SUPABASE_KEY, ONEPERCENT_LIVE_EMAIL and ONEPERCENT_LIVE_PASSWORD to test against a real project")
         }
-        return (email, password)
+        return (config, email, password)
     }
 
     func testSyncAndRealtimeAgainstTheRealProject() async throws {
-        let (email, password) = try credentials()
-        let auth = SupabaseAuth(secrets: InMemorySecretStore())
+        let (config, email, password) = try project()
+        let auth = SupabaseAuth(config: config, secrets: InMemorySecretStore())
         _ = try await auth.signIn(email: email, password: password)
-        let transport = SupabaseTransport(auth: auth)
+        let transport = SupabaseTransport(config: config, auth: auth)
 
         // A device syncs a goal up and another one receives it.
         let mac = Device("live-test-mac", server: transport)
@@ -146,7 +150,7 @@ final class LiveSupabaseTests: XCTestCase {
         XCTAssertEqual(mac.engine.status.isSynced, true)
 
         // The live channel announces a change made elsewhere.
-        let realtime = SupabaseRealtime(auth: auth)
+        let realtime = SupabaseRealtime(config: config, auth: auth)
         let signals = LockedCounter()
         let listener = Task { for await _ in realtime.nudges() { _ = signals.increment() } }
         defer { listener.cancel() }

@@ -1,7 +1,7 @@
 import SwiftUI
 import OnePercentCore
 
-/// Compact empty state view per ONE_PERCENT_SPEC.md (Section 11.6)
+/// Compact empty state view
 struct EmptyStateView: View {
     var onAddGoal: () -> Void
 

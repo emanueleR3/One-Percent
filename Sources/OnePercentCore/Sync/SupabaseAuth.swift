@@ -38,7 +38,7 @@ public actor SupabaseAuth {
     private var inFlightRefresh: Task<AuthSession, Error>?
 
     public init(
-        config: SupabaseConfig = .onePercent,
+        config: SupabaseConfig,
         secrets: SecretStoring,
         http: HTTPSending = URLSession.shared,
         now: @escaping @Sendable () -> Date = { Date() }

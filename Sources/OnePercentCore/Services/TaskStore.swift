@@ -2,7 +2,7 @@ import Foundation
 import Combine
 import SwiftUI
 
-/// Observable state and domain operations for daily tasks (Section 3.1, 5.4, 6, 7, 8)
+/// Observable state and domain operations for daily tasks
 @MainActor
 public final class TaskStore: ObservableObject {
     @Published public private(set) var allTasks: [TaskItem] = [] {
@@ -298,7 +298,7 @@ public final class TaskStore: ObservableObject {
             break
 
         case .rejectedCompletedTask:
-            // Spec Section 7.3: completed tasks cannot be deferred directly
+            // Completed tasks cannot be deferred directly
             break
 
         case .taskNotFound:

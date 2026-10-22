@@ -1,7 +1,7 @@
 import SwiftUI
 import OnePercentCore
 
-/// Status menu control presenting the 4 defined task statuses per ONE_PERCENT_SPEC.md (Section 11.4)
+/// Status menu control presenting the 4 task statuses
 struct TaskStatusMenu<LabelContent: View>: View {
     let currentStatus: TaskStatus
     var isTimerRunning: Bool = false

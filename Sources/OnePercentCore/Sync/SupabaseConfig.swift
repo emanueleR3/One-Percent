@@ -11,11 +11,34 @@ public struct SupabaseConfig: Equatable, Sendable {
         self.publishableKey = publishableKey
     }
 
-    /// The One Percent project (see `supabase/project.json`).
-    public static let onePercent = SupabaseConfig(
-        url: URL(string: "https://your-project-ref.supabase.co")!,
-        publishableKey: "sb_publishable_your-key"
-    )
+    /// The Info.plist keys the build fills in from `Config/OnePercent.xcconfig` (and your
+    /// `Config/Local.xcconfig`).
+    public static let hostInfoKey = "OnePercentSupabaseHost"
+    public static let keyInfoKey = "OnePercentSupabaseKey"
+
+    /// The project this build was set up with, or nil when it has none: cloud sync is then off.
+    public static func fromBundle(_ bundle: Bundle = .main) -> SupabaseConfig? {
+        make(
+            host: bundle.object(forInfoDictionaryKey: hostInfoKey) as? String,
+            key: bundle.object(forInfoDictionaryKey: keyInfoKey) as? String
+        )
+    }
+
+    /// `host` is the project's host, `abcd.supabase.co` (an .xcconfig file cannot hold "//"); a
+    /// full `https://` URL is accepted too. Nil when either value is missing or unusable.
+    public static func make(host: String?, key: String?) -> SupabaseConfig? {
+        let host = host?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let key = key?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        // An unset build setting reaches the Info.plist as "" or, from some tools, as "$(NAME)".
+        // "https:" is what is left of a full URL once Xcode has read "//" as a comment.
+        guard !host.isEmpty, !key.isEmpty, !host.contains("$("), !key.contains("$("), !host.hasSuffix(":") else {
+            return nil
+        }
+        let text = host.contains("://") ? host : "https://" + host
+        guard let url = URL(string: text), let scheme = url.scheme?.lowercased(), ["https", "http"].contains(scheme),
+              let name = url.host, !name.isEmpty else { return nil }
+        return SupabaseConfig(url: url, publishableKey: key)
+    }
 
     public func endpoint(_ path: String, query: [URLQueryItem] = []) -> URL {
         var components = URLComponents(url: url.appendingPathComponent(path), resolvingAgainstBaseURL: false)!

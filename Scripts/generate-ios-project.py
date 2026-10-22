@@ -5,19 +5,23 @@
 
 Sources are picked up from their folders (Xcode "synchronized groups"), so adding a Swift file needs
 no change here. Only structure (targets, signing, the App Group, embedding the widget) lives here.
+
+The Team ID, bundle ID, App Group and Supabase project are not written into the project: it reads
+them from Config/OnePercent.xcconfig, which takes your own values from Config/Local.xcconfig.
 """
 import hashlib, os, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TEAM = "YOUR_TEAM_ID"          # the free Personal Team that signs the apps
-APP_ID = "com.example.onepercent"
-WIDGET_ID = APP_ID + ".widget"
+# Resolved by Xcode from Config/OnePercent.xcconfig (+ Config/Local.xcconfig).
+TEAM = "$(ONEPERCENT_TEAM_ID)"
+APP_ID = "$(ONEPERCENT_BUNDLE_ID)"
+WIDGET_ID = "$(ONEPERCENT_BUNDLE_ID).widget"
 
 def oid(name):
     return hashlib.sha1(("onepercent-ios/" + name).encode()).hexdigest()[:24].upper()
 
 I = {k: oid(k) for k in [
-    "project", "main", "products", "appRef", "widgetRef",
+    "project", "main", "products", "appRef", "widgetRef", "xcconfigRef",
     "appGroup", "widgetGroup", "sharedGroup",
     "appTarget", "widgetTarget",
     "appSources", "appFrameworks", "appResources", "appScript", "appEmbed",
@@ -74,8 +78,9 @@ widget_settings = {
     "SWIFT_VERSION": "5.0", "TARGETED_DEVICE_FAMILY": "1",
 }
 
-def cfg(key, name, settings):
-    return f"\t\t{I[key]} /* {name} */ = {{\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {{\n{build_settings(settings)}\n\t\t\t}};\n\t\t\tname = {name};\n\t\t}};\n"
+def cfg(key, name, settings, base=False):
+    base_ref = f"\t\t\tbaseConfigurationReference = {I['xcconfigRef']} /* OnePercent.xcconfig */;\n" if base else ""
+    return f"\t\t{I[key]} /* {name} */ = {{\n\t\t\tisa = XCBuildConfiguration;\n{base_ref}\t\t\tbuildSettings = {{\n{build_settings(settings)}\n\t\t\t}};\n\t\t\tname = {name};\n\t\t}};\n"
 
 script = ("# The shared Localizer reads <code>.lproj/Localizable.strings from the app bundle.\n"
           "for pack in \"$SRCROOT\"/../Resources/*.lproj; do\n"
@@ -130,6 +135,7 @@ pbx = f"""// !$*UTF8*$!
 /* Begin PBXFileReference section */
 		{I["appRef"]} /* OnePercentiOS.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OnePercentiOS.app; sourceTree = BUILT_PRODUCTS_DIR; }};
 		{I["widgetRef"]} /* OnePercentWidget.appex */ = {{isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OnePercentWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; }};
+		{I["xcconfigRef"]} /* OnePercent.xcconfig */ = {{isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = OnePercent.xcconfig; path = ../Config/OnePercent.xcconfig; sourceTree = SOURCE_ROOT; }};
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -145,6 +151,7 @@ pbx = f"""// !$*UTF8*$!
 				{I["appGroup"]} /* OnePercentiOS */,
 				{I["widgetGroup"]} /* OnePercentWidget */,
 				{I["sharedGroup"]} /* Shared */,
+				{I["xcconfigRef"]} /* OnePercent.xcconfig */,
 				{I["products"]} /* Products */,
 			);
 			sourceTree = "<group>";
@@ -288,7 +295,7 @@ pbx = f"""// !$*UTF8*$!
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-{cfg("projDebug", "Debug", project_debug)}{cfg("projRelease", "Release", project_release)}{cfg("appDebug", "Debug", app_settings)}{cfg("appRelease", "Release", app_settings)}{cfg("widgetDebug", "Debug", widget_settings)}{cfg("widgetRelease", "Release", widget_settings)}/* End XCBuildConfiguration section */
+{cfg("projDebug", "Debug", project_debug, base=True)}{cfg("projRelease", "Release", project_release, base=True)}{cfg("appDebug", "Debug", app_settings)}{cfg("appRelease", "Release", app_settings)}{cfg("widgetDebug", "Debug", widget_settings)}{cfg("widgetRelease", "Release", widget_settings)}/* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
 		{I["projCfgList"]} /* Build configuration list for PBXProject "OnePercentiOS" */ = {{

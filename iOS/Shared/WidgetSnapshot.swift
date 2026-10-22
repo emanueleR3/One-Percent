@@ -35,21 +35,28 @@ struct WidgetSnapshot: Codable, Equatable {
     var texts: Texts
     var updatedAt: Date
 
-    static let sample = WidgetSnapshot(
-        day: "2026-01-01", percent: 33, completed: 2, total: 6, streak: 4, isTodayCounted: true,
-        goals: [
-            Goal(id: "1", title: "33% del piano", isTheOne: true, isInProgress: true),
-            Goal(id: "2", title: "Scrivere al team", isTheOne: false, isInProgress: false),
-            Goal(id: "3", title: "Leggere venti pagine", isTheOne: false, isInProgress: false)
-        ],
-        texts: Texts(progress: "2 di 6", status: "4 rimasti", newDay: "Nuovo giorno", streakLabel: "Serie"),
-        updatedAt: Date()
-    )
+    /// The widget gallery's preview, in the phone's language (the widget has no language packs).
+    static var sample: WidgetSnapshot {
+        let italian = Locale.preferredLanguages.first?.hasPrefix("it") == true
+        return WidgetSnapshot(
+            day: "2026-01-01", percent: 33, completed: 2, total: 6, streak: 4, isTodayCounted: true,
+            goals: [
+                Goal(id: "1", title: italian ? "33% del piano" : "Ship the 1% plan", isTheOne: true, isInProgress: true),
+                Goal(id: "2", title: italian ? "Rispondere alla revisione" : "Reply to the design review", isTheOne: false, isInProgress: false),
+                Goal(id: "3", title: italian ? "Leggere venti pagine" : "Read twenty pages", isTheOne: false, isInProgress: false)
+            ],
+            texts: italian
+                ? Texts(progress: "2 di 6", status: "4 rimasti", newDay: "Nuovo giorno", streakLabel: "Serie")
+                : Texts(progress: "2 of 6", status: "4 left", newDay: "New day", streakLabel: "Streak"),
+            updatedAt: Date()
+        )
+    }
 }
 
 /// The folder the app and the widget both can read.
 enum AppGroup {
-    static let identifier = "group.com.example.onepercent"
+    /// Set by the build (`ONEPERCENT_APP_GROUP` in Config/OnePercent.xcconfig) in both Info.plists.
+    static let identifier = Bundle.main.object(forInfoDictionaryKey: "OnePercentAppGroup") as? String ?? ""
     private static let fileName = "widget-snapshot.json"
 
     /// Inside the container's `Library` folder (the only part tools like devicectl may look into).

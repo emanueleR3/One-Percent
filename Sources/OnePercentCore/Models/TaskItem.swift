@@ -13,7 +13,7 @@ public struct SubTask: Identifiable, Codable, Equatable, Sendable {
     }
 }
 
-/// Core task occurrence entity defined in ONE_PERCENT_SPEC.md (Section 5.1)
+/// Core task occurrence entity
 /// Distinct occurrences possess unique identifiers; identical titles on different occurrences
 /// or dates are explicitly preserved and not treated as duplicates.
 public struct TaskItem: Identifiable, Codable, Equatable, Sendable {

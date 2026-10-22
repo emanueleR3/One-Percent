@@ -11,7 +11,7 @@ final class IslandPresentationState: ObservableObject {
     }
 }
 
-/// Expanded Dynamic Island notch panel surface per ONE_PERCENT_SPEC.md (Section 11)
+/// Expanded Dynamic Island notch panel surface
 struct IslandView: View {
     @ObservedObject var store: TaskStore
     @ObservedObject var presentationState: IslandPresentationState
@@ -189,7 +189,7 @@ struct IslandView: View {
                 DayPickerView(store: store)
             }
 
-            // Discrete error feedback if persistence encountered an error (Section 5.4)
+            // Discrete error feedback if saving to disk failed
             if let errorMessage = store.lastErrorMessage {
                 errorBanner(errorMessage)
             }

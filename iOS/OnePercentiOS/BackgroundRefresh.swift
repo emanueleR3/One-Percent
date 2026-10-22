@@ -9,7 +9,8 @@ import Foundation
 /// iOS alone decides when (it rations these wake-ups by battery, network and how often the app is
 /// used), so this is best effort: minutes to hours, never instant. It works with a free account.
 enum BackgroundRefresh {
-    static let identifier = "com.example.onepercent.refresh"
+    /// Must match BGTaskSchedulerPermittedIdentifiers in Config/OnePercentiOS-Info.plist.
+    static let identifier = (Bundle.main.bundleIdentifier ?? "OnePercentiOS") + ".refresh"
 
     /// How soon the system may run it at the earliest.
     private static let earliest: TimeInterval = 15 * 60

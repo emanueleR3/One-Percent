@@ -38,6 +38,7 @@
 /* Begin PBXFileReference section */
 		467430967A743A81BA289B5D /* OnePercentiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OnePercentiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		401310A524366A883B21F401 /* OnePercentWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OnePercentWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		FFD6D2197899E752A2EE6F2B /* OnePercent.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = OnePercent.xcconfig; path = ../Config/OnePercent.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -83,6 +84,7 @@
 				6C9A6E9363285211A9E9A1A5 /* OnePercentiOS */,
 				075097C2169F3DD8919B8755 /* OnePercentWidget */,
 				6D57BEF43EC00F5D7865B8A4 /* Shared */,
+				FFD6D2197899E752A2EE6F2B /* OnePercent.xcconfig */,
 				3F0E2A9B778175354C6B4EF3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -256,6 +258,7 @@
 /* Begin XCBuildConfiguration section */
 		7FC57B813A982A4E5D462263 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = FFD6D2197899E752A2EE6F2B /* OnePercent.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
@@ -276,6 +279,7 @@
 		};
 		A3FDFBA8CD5BC41DB1EE661B /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = FFD6D2197899E752A2EE6F2B /* OnePercent.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
@@ -300,7 +304,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/OnePercentiOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = YOUR_TEAM_ID;
+				DEVELOPMENT_TEAM = "$(ONEPERCENT_TEAM_ID)";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -317,7 +321,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.onepercent;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ONEPERCENT_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -335,7 +339,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/OnePercentiOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = YOUR_TEAM_ID;
+				DEVELOPMENT_TEAM = "$(ONEPERCENT_TEAM_ID)";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -352,7 +356,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.onepercent;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ONEPERCENT_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -370,7 +374,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/OnePercentWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = YOUR_TEAM_ID;
+				DEVELOPMENT_TEAM = "$(ONEPERCENT_TEAM_ID)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/OnePercentWidget-Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "One Percent";
@@ -380,7 +384,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 0.1.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.onepercent.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ONEPERCENT_BUNDLE_ID).widget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -398,7 +402,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/OnePercentWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = YOUR_TEAM_ID;
+				DEVELOPMENT_TEAM = "$(ONEPERCENT_TEAM_ID)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/OnePercentWidget-Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "One Percent";
@@ -408,7 +412,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 0.1.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.onepercent.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(ONEPERCENT_BUNDLE_ID).widget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

@@ -5,7 +5,7 @@ import AppKit
 import UIKit
 #endif
 
-/// Handles local calendar date logic, midnight transitions, and date navigation (Section 3.1, 6.3, 12)
+/// Handles local calendar date logic, midnight transitions, and date navigation
 @MainActor
 public final class DateService: ObservableObject {
     @Published public private(set) var today: Date

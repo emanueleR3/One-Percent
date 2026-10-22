@@ -1,6 +1,6 @@
 import Foundation
 
-/// Implements exact deferral / rollover rules specified in ONE_PERCENT_SPEC.md (Section 7)
+/// The deferral ("Tomorrow") rules
 public struct TaskRolloverService {
     public enum RolloverResult {
         case success(updatedTask: TaskItem, newDeferredTask: TaskItem)
@@ -19,12 +19,12 @@ public struct TaskRolloverService {
         to nextDate: Date,
         now: Date = Date()
     ) -> RolloverResult {
-        // Section 7.3: A completed task cannot be deferred without explicitly changing its status first
+        // A completed task cannot be deferred without explicitly changing its status first
         guard task.status != .done else {
             return .rejectedCompletedTask
         }
 
-        // Section 7.3: Prevent duplicate deferrals (idempotency)
+        // Prevent duplicate deferrals (idempotency)
         if let existingDeferredID = task.deferredToTaskID {
             return .ignoredAlreadyDeferred(existingNewTaskID: existingDeferredID)
         }

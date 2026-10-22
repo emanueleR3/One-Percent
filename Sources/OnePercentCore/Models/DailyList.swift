@@ -1,6 +1,6 @@
 import Foundation
 
-/// Logical daily list representing goals scheduled for a specific date (Section 5.3)
+/// Logical daily list representing goals scheduled for a specific date
 public struct DailyList: Identifiable, Equatable, Sendable {
     public var id: String { dateKey }
     public let dateKey: String

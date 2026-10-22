@@ -1,7 +1,7 @@
 import SwiftUI
 import OnePercentCore
 
-/// Single task occurrence row per ONE_PERCENT_SPEC.md (Section 11.3)
+/// Single task occurrence row
 struct TaskRowView: View {
     let task: TaskItem
     let onUpdateStatus: (TaskStatus) -> Void

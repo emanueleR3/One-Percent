@@ -1,7 +1,7 @@
 import SwiftUI
 import OnePercentCore
 
-/// Centralized typography definitions per ONE_PERCENT_SPEC.md (Section 10.5)
+/// Centralized typography definitions
 enum IslandTypography {
     static let appWordmark = Font.system(size: 13.5, weight: .medium)
     static let sectionTitle = Font.system(size: 15, weight: .semibold)

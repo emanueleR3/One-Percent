@@ -1,6 +1,6 @@
 import Foundation
 
-/// Progress metrics strictly calculated per ONE_PERCENT_SPEC.md (Section 8)
+/// Progress metrics for one day (deferred goals never count against it)
 ///
 /// Formula:
 /// completedCount = count(tasks where status == done)

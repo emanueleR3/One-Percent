@@ -118,7 +118,7 @@ struct TodayView: View {
             .environment(\.editMode, $editMode)
             .animation(.spring(response: 0.5, dampingFraction: 0.85), value: tasks)
             .animation(.spring(response: 0.45, dampingFraction: 0.85), value: focus.isActive)
-            .refreshable { await model.cloud.syncNow() }
+            .refreshable { await model.cloud?.syncNow() }
             .id(store.selectedDate)
             .transition(.opacity)
 

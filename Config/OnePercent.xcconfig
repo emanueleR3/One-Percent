@@ -1,0 +1,28 @@
+// The settings that tie a build to one person: who signs the iPhone app, its identifiers, and
+// the Supabase project used for cloud sync.
+//
+// These are placeholders, so a fresh clone builds and runs in the iOS Simulator and on the Mac as
+// is (with cloud sync off). Put your own values in Config/Local.xcconfig, which git ignores:
+//
+//     cp Config/Local.example.xcconfig Config/Local.xcconfig
+//
+// Read by Xcode (the iPhone app and its widget) and by Scripts/read-config.py (the Mac build and
+// the other scripts). In .xcconfig files "//" starts a comment, so URLs are written without https://.
+
+// Apple Developer Team ID that signs the iPhone app. A free Personal Team works.
+// Empty = Simulator only.
+ONEPERCENT_TEAM_ID =
+
+// The iPhone app's bundle identifier. It must be unique to you. The widget adds ".widget" and the
+// background refresh task ".refresh".
+ONEPERCENT_BUNDLE_ID = com.example.onepercent
+
+// The App Group that the iPhone app and its widget share.
+ONEPERCENT_APP_GROUP = group.$(ONEPERCENT_BUNDLE_ID)
+
+// Your Supabase project, for cloud sync between the Mac and the iPhone (see supabase/README.md):
+// the project's host and its publishable key. Leave them empty and cloud sync is off.
+ONEPERCENT_SUPABASE_HOST =
+ONEPERCENT_SUPABASE_KEY =
+
+#include? "Local.xcconfig"

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Completion numbers for one calendar day, derived from the tasks scheduled on it.
-/// Mirrors `TaskProgress` (Section 8): deferred goals never count against the day.
+/// Mirrors `TaskProgress`: deferred goals never count against the day.
 public struct DayStats: Equatable, Identifiable, Sendable {
     public let date: Date
     public let completed: Int

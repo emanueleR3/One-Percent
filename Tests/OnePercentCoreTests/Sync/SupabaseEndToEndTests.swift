@@ -72,10 +72,11 @@ final class SupabaseHTTPEmulator: HTTPSending, @unchecked Sendable {
 final class SupabaseEndToEndTests: XCTestCase {
     private func makeDevices() async throws -> (SupabaseHTTPEmulator, Device, Device) {
         let http = SupabaseHTTPEmulator()
+        let config = SupabaseConfig(url: URL(string: "https://example.supabase.co")!, publishableKey: "sb_publishable_test")
         func device(_ name: String) async throws -> Device {
-            let auth = SupabaseAuth(config: .onePercent, secrets: InMemorySecretStore(), http: http)
+            let auth = SupabaseAuth(config: config, secrets: InMemorySecretStore(), http: http)
             _ = try await auth.signIn(email: "me@example.com", password: "pw")
-            return Device(name, server: SupabaseTransport(config: .onePercent, auth: auth, http: http))
+            return Device(name, server: SupabaseTransport(config: config, auth: auth, http: http))
         }
         return (http, try await device("mac"), try await device("phone"))
     }

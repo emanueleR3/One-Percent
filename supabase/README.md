@@ -4,12 +4,23 @@ The Mac app and the iPhone app keep their own copy of your goals and habits and 
 through a free Supabase project. One table, `public.sync_records`, holds every item as a JSON
 document; row level security keeps each account to its own rows.
 
-Project: see [`project.json`](project.json). The **publishable** key is meant to be embedded in the
-apps: on its own it can do nothing, because the table only answers to a signed-in user. Never put
-the project's `secret` / `service_role` key in this repo or in an app.
+Cloud sync is optional. Without a project the apps work fully, each on its own device. Bring
+your own project (the free tier is plenty for one person) and both apps sync through it.
+
+The **publishable** key is meant to be embedded in the apps: on its own it can do nothing, because
+the table only answers to a signed-in user. Never put the project's `secret` / `service_role` key
+in this repo or in an app.
 
 ## Set it up (about 5 minutes, once)
 
+0. **Create a project** at [supabase.com](https://supabase.com) and copy its host and publishable
+   key (*Project Settings → API*) into `Config/Local.xcconfig`:
+   ```
+   ONEPERCENT_SUPABASE_HOST = your-project-ref.supabase.co
+   ONEPERCENT_SUPABASE_KEY = sb_publishable_...
+   ```
+   Write the host without `https://`: in `.xcconfig` files `//` starts a comment. Rebuild both
+   apps afterwards (`Scripts/build-app.sh`, and Xcode or `Scripts/install-iphone.sh`).
 1. **Create the table.** Dashboard → *SQL Editor* → new query → paste
    [`migrations/20261009000000_sync_records.sql`](migrations/20261009000000_sync_records.sql) → *Run*.
    It is safe to run again.
@@ -55,7 +66,7 @@ A record, as sent to `push_records` and stored:
 | field | meaning |
 |---|---|
 | `id` | the item's own UUID (`TaskItem.id`, `Habit.id`) |
-| `kind` | `task`, `habit` or `pref` |
+| `kind` | `task` or `habit` (`pref` is accepted by the schema but not sent by the apps yet) |
 | `data` | the item's `Codable` JSON, the same as in `tasks.json` (ISO 8601 dates) |
 | `client_updated_at` | when this device last changed it (`updatedAt`). Decides conflicts |
 | `deleted` | `true` = tombstone (a deletion that other devices still need to hear about) |

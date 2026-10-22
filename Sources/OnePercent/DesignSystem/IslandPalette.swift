@@ -1,7 +1,7 @@
 import SwiftUI
 import OnePercentCore
 
-/// Centralized color palette defined in ONE_PERCENT_SPEC.md (Section 10.2)
+/// Centralized color palette
 enum IslandPalette {
     static let background = Color(red: 5.0 / 255.0, green: 5.0 / 255.0, blue: 5.0 / 255.0)
     static let primarySurface = Color(red: 17.0 / 255.0, green: 17.0 / 255.0, blue: 17.0 / 255.0)

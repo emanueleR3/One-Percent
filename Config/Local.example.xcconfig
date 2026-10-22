@@ -1,0 +1,18 @@
+// Your own values for Config/OnePercent.xcconfig. Copy this file to Config/Local.xcconfig (git
+// ignores it) and fill it in:
+//
+//     cp Config/Local.example.xcconfig Config/Local.xcconfig
+//
+// Leave a line out to keep the placeholder. Remember: "//" starts a comment here.
+
+// The 10-character Team ID. With Xcode signed in to your Apple ID, this prints it as OU=...:
+//     security find-certificate -c "Apple Development" -p | openssl x509 -noout -subject
+ONEPERCENT_TEAM_ID = ABCDE12345
+
+// Must be unique to you, for example com.yourname.onepercent.
+ONEPERCENT_BUNDLE_ID = com.yourname.onepercent
+
+// Supabase dashboard > Project Settings > API: the project URL without https://, and the
+// publishable key (never the secret / service_role key).
+ONEPERCENT_SUPABASE_HOST = your-project-ref.supabase.co
+ONEPERCENT_SUPABASE_KEY = sb_publishable_xxxxxxxxxxxxxxxxxxxxxx

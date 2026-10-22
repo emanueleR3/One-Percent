@@ -115,7 +115,7 @@ public final class SupabaseRealtime: @unchecked Sendable {
     private let tokenMargin: TimeInterval
 
     public init(
-        config: SupabaseConfig = .onePercent,
+        config: SupabaseConfig,
         auth: SupabaseAuth,
         heartbeatInterval: TimeInterval = 25,
         tokenMargin: TimeInterval = 90,

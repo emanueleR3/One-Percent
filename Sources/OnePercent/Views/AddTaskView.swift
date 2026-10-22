@@ -11,7 +11,7 @@ struct NewGoal: Equatable {
     var schedule: HabitSchedule?
 }
 
-/// Compact inline goal editor per ONE_PERCENT_SPEC.md (Section 11.5)
+/// Compact inline goal editor
 ///
 /// `#tags` are pulled out of the text. When Apple Intelligence is available, longer sentences also
 /// go through the on-device model, so "call mom tomorrow #family" lands on tomorrow with a tag.

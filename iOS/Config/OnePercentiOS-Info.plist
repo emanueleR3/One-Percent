@@ -4,8 +4,14 @@
 <dict>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.example.onepercent.refresh</string>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER).refresh</string>
 	</array>
+	<key>OnePercentAppGroup</key>
+	<string>$(ONEPERCENT_APP_GROUP)</string>
+	<key>OnePercentSupabaseHost</key>
+	<string>$(ONEPERCENT_SUPABASE_HOST)</string>
+	<key>OnePercentSupabaseKey</key>
+	<string>$(ONEPERCENT_SUPABASE_KEY)</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

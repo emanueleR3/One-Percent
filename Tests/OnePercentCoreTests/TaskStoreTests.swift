@@ -91,7 +91,7 @@ final class TaskStoreTests: XCTestCase {
     // MARK: - Progress Calculations
 
     func testProgressCalculationFormula() {
-        // Spec Section 8:
+        // How a day's progress is counted:
         // completedCount = count(done)
         // totalCount = count(status != deferred)
         // progress = completedCount / totalCount

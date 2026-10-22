@@ -23,18 +23,18 @@ final class AppDependencies {
         dateService.setLocale(language.locale)
     }
 
-    private static func makeCloudSync(store: TaskStore) -> CloudSyncController {
+    private static func makeCloudSync(store: TaskStore, config: SupabaseConfig) -> CloudSyncController {
         // The session lives in a private file: an ad-hoc signed app would get a Keychain prompt on every update.
-        let auth = SupabaseAuth(secrets: FileSecretStore())
+        let auth = SupabaseAuth(config: config, secrets: FileSecretStore())
         let engine = SyncEngine(
             store: store,
-            transport: SupabaseTransport(auth: auth),
+            transport: SupabaseTransport(config: config, auth: auth),
             persistence: FileSyncStatePersistence()
         )
         return CloudSyncController(
             auth: auth,
             engine: engine,
-            realtime: SupabaseRealtime(auth: auth),
+            realtime: SupabaseRealtime(config: config, auth: auth),
             // Copy the goal and habit files before this Mac first merges with the cloud.
             beforeFirstSync: { SyncBackup.make() }
         )
@@ -71,9 +71,10 @@ final class AppDependencies {
             ReminderCoordinator(store: store, preferences: preferences, scheduler: $0)
         }
 
-        // Cloud sync talks to the real server, so (like notifications) it only runs in the app bundle.
+        // Cloud sync talks to the real server, so (like notifications) it only runs in the app bundle,
+        // and only when the build was given a Supabase project (Config/Local.xcconfig).
         let cloud: CloudSyncController? = Bundle.main.bundleURL.pathExtension == "app"
-            ? Self.makeCloudSync(store: store)
+            ? SupabaseConfig.fromBundle().map { Self.makeCloudSync(store: store, config: $0) }
             : nil
 
         let focus = FocusController(
