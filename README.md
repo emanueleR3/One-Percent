@@ -125,6 +125,9 @@ All screenshots use the sample goals of the [demo mode](#3-iphone-app).
 
 ### Mac
 
+The download runs on Macs with Apple silicon and macOS 14 or later. On an Intel Mac,
+[build from source](#build-from-source).
+
 1. Download `One-Percent-v<version>.dmg` from the
    [latest release](https://github.com/emanueleR3/One-Percent/releases/latest), open it and drag
    **One Percent** to **Applications**.
@@ -147,9 +150,9 @@ described below.
 
 ### Requirements
 
-- macOS 14 or later and **Xcode 27** (the version the project is developed with; older versions are
-  untested). Smart quick add needs the macOS 26 SDK; without it the app builds and the feature is
-  simply absent.
+- macOS 14 or later and **Xcode 26.6 or later** (developed with Xcode 27; CI builds with 26.6).
+  Smart quick add uses the macOS 26 SDK's on-device model; with an older SDK the app still builds,
+  without that feature.
 - For the iPhone: iOS 17 or later, an Apple ID signed in to Xcode (a free one works), and Developer
   Mode turned on.
 - Python 3, which comes with the Xcode command line tools, for the helper scripts.

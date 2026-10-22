@@ -19,6 +19,11 @@ First public, open-source release.
 - `Scripts/build-app.sh` keeps the build machine's folders out of the Mac app and strips its debug
   symbols, which also makes the app less than half the size.
 
+### Fixed
+- The Mac app builds with Xcode 26.6 as well as Xcode 27 (smart quick add's options were renamed in
+  the newer SDK).
+- A sync test that depended on timing no longer fails on slower machines.
+
 ### Added
 - README in English and Italian, MIT license, contributing guide, security policy and this changelog.
 - GitHub Actions: unit tests, an iPhone Simulator build and the database schema tests.

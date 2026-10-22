@@ -132,6 +132,9 @@ Tutti gli screenshot usano gli obiettivi di esempio della [modalità demo](#3-ap
 
 ### Mac
 
+La versione scaricabile funziona sui Mac con Apple silicon e macOS 14 o successivo. Su un Mac
+Intel, [compila dal codice](#compila-dal-codice).
+
 1. Scarica `One-Percent-v<versione>.dmg` dall'[ultima release](https://github.com/emanueleR3/One-Percent/releases/latest),
    aprilo e trascina **One Percent** in **Applicazioni**.
 2. L'app è firmata ad hoc e non è notarizzata da Apple, quindi la prima volta macOS la blocca. Apri
@@ -154,9 +157,9 @@ come spiegato qui sotto.
 
 ### Requisiti
 
-- macOS 14 o successivo e **Xcode 27** (la versione con cui è sviluppato il progetto; le precedenti non
-  sono provate). L'aggiunta intelligente richiede l'SDK di macOS 26; senza, l'app si compila lo stesso
-  e la funzione semplicemente non c'è.
+- macOS 14 o successivo e **Xcode 26.6 o successivo** (sviluppato con Xcode 27; la CI compila con
+  26.6). L'aggiunta intelligente usa il modello sul dispositivo dell'SDK di macOS 26; con un SDK più
+  vecchio l'app si compila lo stesso, senza quella funzione.
 - Per l'iPhone: iOS 17 o successivo, un Apple ID collegato a Xcode (va bene anche gratuito) e la
   Modalità sviluppatore attiva.
 - Python 3, incluso negli strumenti da riga di comando di Xcode, per gli script.
