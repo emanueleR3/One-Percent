@@ -247,7 +247,12 @@ private enum OnDeviceGoalParser {
 
     /// Deterministic answers: the same sentence should always land on the same day.
     private static func greedyOptions() -> GenerationOptions {
+        // The argument was renamed in the macOS 27 SDK (Xcode 27, Swift 6.4).
+        #if compiler(>=6.4)
         GenerationOptions(samplingMode: .greedy)
+        #else
+        GenerationOptions(sampling: .greedy)
+        #endif
     }
 
     private static func map(
