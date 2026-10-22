@@ -5,13 +5,17 @@ project_dir="${0:A:h:h}"
 cd "$project_dir"
 
 scratch_dir="${TMPDIR%/}/one-percent-spm-build"
-swift build --configuration release --scratch-path "$scratch_dir"
-binary_dir="$(swift build --configuration release --scratch-path "$scratch_dir" --show-bin-path)"
+# Keep this Mac's folders (and so your username) out of the app: source paths are recorded
+# relative to the project, and the debug symbols that point at build files are stripped below.
+build_flags=(--configuration release --scratch-path "$scratch_dir" -Xswiftc -file-prefix-map -Xswiftc "$project_dir=.")
+swift build "${build_flags[@]}"
+binary_dir="$(swift build "${build_flags[@]}" --show-bin-path)"
 app_bundle="$project_dir/build/One Percent.app"
 
 mkdir -p "$app_bundle/Contents/MacOS"
 mkdir -p "$app_bundle/Contents/Resources"
 cp "$binary_dir/OnePercent" "$app_bundle/Contents/MacOS/OnePercent"
+strip -S -x "$app_bundle/Contents/MacOS/OnePercent"
 cp "$project_dir/Resources/Info.plist" "$app_bundle/Contents/Info.plist"
 if [ -f "$project_dir/Resources/AppIcon.icns" ]; then
     cp "$project_dir/Resources/AppIcon.icns" "$app_bundle/Contents/Resources/AppIcon.icns"

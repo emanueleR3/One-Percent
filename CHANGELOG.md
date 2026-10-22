@@ -16,6 +16,8 @@ First public, open-source release.
 - Cloud sync is turned on only in builds that have a Supabase project; without one the apps work
   fully on each device and the cloud section is hidden.
 - The demo mode and the widget preview use generic sample goals, in English or Italian.
+- `Scripts/build-app.sh` keeps the build machine's folders out of the Mac app and strips its debug
+  symbols, which also makes the app less than half the size.
 
 ### Added
 - README in English and Italian, MIT license, contributing guide, security policy and this changelog.
