@@ -86,9 +86,15 @@ final class SyncAutomationTests: XCTestCase {
     func testFailuresBackOffInsteadOfHammeringTheServer() async {
         server.failure = .offline
         mac.engine.start(debounce: 0.05, interval: 0.05)
-        try? await Task.sleep(nanoseconds: 800_000_000)
-        XCTAssertEqual(mac.engine.status, .offline)
-        server.failure = nil
-        XCTAssertTrue(mac.engine.status != .syncing)
+        let offline = await eventually { self.mac.engine.status == .offline }
+        XCTAssertTrue(offline, "a failed sync shows as offline")
+
+        // Counted, not sampled: at one exact moment the engine may be busy with a retry, more so
+        // on a slow machine. Every 0.05 s would be about 30 tries in 1.5 s; doubling waits
+        // (0.1, 0.2, 0.4, 0.8 s...) leave only a handful, but it does keep trying.
+        server.resetCounters()
+        try? await Task.sleep(nanoseconds: 1_500_000_000)
+        XCTAssertLessThan(server.failedCalls, 10, "backs off instead of hammering")
+        XCTAssertGreaterThanOrEqual(server.failedCalls, 1, "keeps retrying")
     }
 }

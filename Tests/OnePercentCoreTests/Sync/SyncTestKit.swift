@@ -16,6 +16,8 @@ final class FakeSyncServer: SyncTransport, @unchecked Sendable {
     private(set) var pushCalls = 0
     private(set) var pulledRecords = 0
     private(set) var pushedRecords = 0
+    /// Calls answered with `failure`.
+    private(set) var failedCalls = 0
     /// Throw this from the next call(s).
     var failure: SyncError?
     var failPushOnly = false
@@ -29,7 +31,7 @@ final class FakeSyncServer: SyncTransport, @unchecked Sendable {
 
     func push(_ records: [SyncRecord]) async throws -> [PushOutcome] {
         try lock.withLock {
-            if let failure { throw failure }
+            if let failure { failedCalls += 1; throw failure }
             pushCalls += 1
             pushedRecords += records.count
             return records.map { incoming in
@@ -52,7 +54,7 @@ final class FakeSyncServer: SyncTransport, @unchecked Sendable {
 
     func pull(since: Date?, limit: Int) async throws -> [SyncRecord] {
         try lock.withLock {
-            if let failure, !failPushOnly { throw failure }
+            if let failure, !failPushOnly { failedCalls += 1; throw failure }
             let page = rows.values
                 .filter { since == nil || $0.serverUpdatedAt! > since! }
                 .sorted { $0.serverUpdatedAt! < $1.serverUpdatedAt! }
@@ -71,7 +73,7 @@ final class FakeSyncServer: SyncTransport, @unchecked Sendable {
         }
     }
 
-    func resetCounters() { lock.withLock { pushCalls = 0; pulledRecords = 0; pushedRecords = 0; pushLog = [] } }
+    func resetCounters() { lock.withLock { pushCalls = 0; pulledRecords = 0; pushedRecords = 0; failedCalls = 0; pushLog = [] } }
 }
 
 /// One install: its own store, its own sync state, a shared server.
