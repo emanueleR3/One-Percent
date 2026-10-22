@@ -1,0 +1,41 @@
+name: Bug report
+description: Something does not work as it should.
+labels: [bug]
+body:
+  - type: dropdown
+    id: app
+    attributes:
+      label: Which app?
+      options:
+        - Mac
+        - iPhone
+        - Widget or Live Activity
+        - Cloud sync
+        - Build or install scripts
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: One Percent version (Settings, at the bottom) and macOS / iOS version.
+      placeholder: One Percent 0.1.3, macOS 26.1
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+      placeholder: |
+        1. Open the panel
+        2. ...
+        Expected: ...
+        Got: ...
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or logs
+      description: Optional. Please remove anything private, such as goal titles you would rather not share.
