@@ -16,7 +16,7 @@ A small daily-goal tracker that lives in your MacBook's notch, with a companion 
 
 [**Download for Mac**](https://github.com/emanueleR3/One-Percent/releases/latest) · [Build from source](#build-from-source) · [Leggi in italiano](README.it.md)
 
-<!-- SCREENSHOT:HERO -->
+<img src="docs/images/mac-panel.png" width="680" alt="The One Percent panel open below the MacBook notch, showing today's goals and progress">
 
 </div>
 
@@ -93,7 +93,33 @@ device. See [Cloud sync](#cloud-sync-optional).
 
 ## Screenshots
 
-<!-- SCREENSHOT:GALLERY -->
+All screenshots use the sample goals of the [demo mode](#3-iphone-app).
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/mac-stats.png" alt="Stats page on the Mac: streak, completion, 12-week heatmap and the 1% score curve"></td>
+    <td width="50%"><img src="docs/images/mac-focus.png" alt="The Mac panel with a focus timer running on a goal"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Stats and the 1% score</sub></td>
+    <td align="center"><sub>Focus timer</sub></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="25%"><img src="docs/images/ios-today.png" alt="iPhone Today screen with goals, tags and the week strip"></td>
+    <td width="25%"><img src="docs/images/ios-detail.png" alt="iPhone goal page with status, time, note, steps and tags"></td>
+    <td width="25%"><img src="docs/images/ios-stats.png" alt="iPhone stats with heatmap and 1% score"></td>
+    <td width="25%"><img src="docs/images/ios-lockscreen.jpg" alt="iPhone Lock Screen with the focus timer as a Live Activity"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Today</sub></td>
+    <td align="center"><sub>Goal page</sub></td>
+    <td align="center"><sub>Stats</sub></td>
+    <td align="center"><sub>Live Activity</sub></td>
+  </tr>
+</table>
 
 ## Install
 
@@ -173,7 +199,8 @@ open `Package.swift` in Xcode.
 ### 3. iPhone app
 
 **Simulator:** open `iOS/OnePercentiOS.xcodeproj`, pick the `OnePercentiOS` scheme and a simulator,
-and press Run.
+and press Run. No Apple account is needed. On a freshly booted simulator the first launch can stay
+black for 10–20 seconds.
 
 **Your iPhone:** plug it in, unlock it, and run:
 

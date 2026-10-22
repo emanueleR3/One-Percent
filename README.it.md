@@ -16,7 +16,7 @@ Un piccolo tracker di obiettivi giornalieri che vive nel notch del MacBook, con 
 
 [**Scarica per Mac**](https://github.com/emanueleR3/One-Percent/releases/latest) · [Compila dal codice](#compila-dal-codice) · [Read in English](README.md)
 
-<!-- SCREENSHOT:HERO -->
+<img src="docs/images/mac-panel.png" width="680" alt="Il pannello di One Percent aperto sotto il notch del MacBook, con gli obiettivi e i progressi di oggi">
 
 </div>
 
@@ -100,7 +100,33 @@ offline. Le impostazioni restano su ciascun dispositivo. Vedi
 
 ## Screenshot
 
-<!-- SCREENSHOT:GALLERY -->
+Tutti gli screenshot usano gli obiettivi di esempio della [modalità demo](#3-app-iphone).
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/mac-stats.png" alt="Statistiche sul Mac: serie, completamento, heatmap di 12 settimane e curva del punteggio 1%"></td>
+    <td width="50%"><img src="docs/images/mac-focus.png" alt="Il pannello del Mac con un timer di concentrazione in corso"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Statistiche e punteggio 1%</sub></td>
+    <td align="center"><sub>Timer di concentrazione</sub></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="25%"><img src="docs/images/ios-today.png" alt="Schermata Oggi su iPhone con obiettivi, tag e striscia della settimana"></td>
+    <td width="25%"><img src="docs/images/ios-detail.png" alt="Pagina di un obiettivo su iPhone con stato, tempo, nota, passaggi e tag"></td>
+    <td width="25%"><img src="docs/images/ios-stats.png" alt="Statistiche su iPhone con heatmap e punteggio 1%"></td>
+    <td width="25%"><img src="docs/images/ios-lockscreen.jpg" alt="Schermata di blocco dell'iPhone con il timer come Live Activity"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Oggi</sub></td>
+    <td align="center"><sub>Pagina obiettivo</sub></td>
+    <td align="center"><sub>Statistiche</sub></td>
+    <td align="center"><sub>Live Activity</sub></td>
+  </tr>
+</table>
 
 ## Installazione
 
@@ -180,7 +206,8 @@ usarla tutti i giorni. Puoi anche aprire `Package.swift` in Xcode.
 ### 3. App iPhone
 
 **Simulatore:** apri `iOS/OnePercentiOS.xcodeproj`, scegli lo schema `OnePercentiOS` e un simulatore,
-e premi Run.
+e premi Run. Non serve un account Apple. Su un simulatore appena avviato, il primo avvio può restare
+nero per 10–20 secondi.
 
 **Il tuo iPhone:** collegalo, sbloccalo e lancia:
 
